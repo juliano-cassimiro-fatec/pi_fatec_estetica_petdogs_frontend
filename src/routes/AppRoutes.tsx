@@ -1,12 +1,17 @@
+import { lazy, Suspense } from "react"
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 import { LoginPage } from "../pages/auth/LoginPage"
-import { DashboardPage } from "../pages/dashboard/DashboardPage"
 import { LandingPage } from "../pages/landing/LandingPage"
 import { UnauthorizedPage } from "../pages/UnauthorizedPage"
-import { authService } from "../services/auth/authService"
+import { NotFoundPage } from "../pages/NotFoundPage"
+import { useAuth } from "../services/auth/useAuth"
+
+const DashboardPage = lazy(() => import("../pages/dashboard/DashboardPage").then((module) => ({ default: module.DashboardPage })))
 
 function ProtectedDashboard() {
-  return authService.hasValidSession() ? <DashboardPage /> : <Navigate to="/login" replace />
+  const { status } = useAuth()
+  if (status === "checking") return <main className="grid min-h-screen place-items-center" role="status">Verificando sessão...</main>
+  return status === "authenticated" ? <Suspense fallback={<main className="grid min-h-screen place-items-center" role="status">Carregando painel...</main>}><DashboardPage /></Suspense> : <Navigate to="/login" replace />
 }
 
 export function AppRoutes() {
@@ -19,7 +24,7 @@ export function AppRoutes() {
         <Route path="/app/dashboard" element={<ProtectedDashboard />} />
         <Route path="/app/*" element={<Navigate to="/app/dashboard" replace />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   )

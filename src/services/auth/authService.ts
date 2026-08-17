@@ -4,12 +4,12 @@ import type { AuthSession, LoginCredentials, RegisterCustomerData } from "../../
 
 export function createAuthUseCases(repository: AuthRepository, storage: SessionStorage) {
   return {
-    getStoredSession(): AuthSession | null {
-      return storage.getSession()
+    hasStoredToken(): boolean {
+      return Boolean(storage.getToken())
     },
 
-    hasValidSession(): boolean {
-      return Boolean(storage.getToken())
+    getCurrentUser() {
+      return repository.me()
     },
 
     async signIn(credentials: LoginCredentials): Promise<AuthSession> {

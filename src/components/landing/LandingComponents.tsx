@@ -31,25 +31,6 @@ export function ServiceCard({ title, text, highlight, actionHref, actionLabel = 
   )
 }
 
-export function ReviewCard({ name, profile, text }: { name: string; profile: string; text: string }) {
-  return (
-    <article className="rounded-[1.6rem] border border-slate-200 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_45px_-25px_rgba(37,99,235,0.25)]">
-      <div className="flex items-center gap-1 text-orange-500" aria-label="5 estrelas">
-        <Star />
-        <Star />
-        <Star />
-        <Star />
-        <Star />
-      </div>
-      <p className="mt-4 text-sm leading-6 text-slate-600">“{text}”</p>
-      <footer className="mt-5 border-t border-slate-100 pt-4">
-        <p className="font-black text-slate-950">{name}</p>
-        <p className="text-sm text-slate-500">{profile}</p>
-      </footer>
-    </article>
-  )
-}
-
 export function FaqItem({ question, answer }: { question: string; answer: string }) {
   return (
     <details className="group rounded-[1.4rem] border border-slate-200 bg-white p-5 shadow-sm transition open:shadow-[0_18px_45px_-28px_rgba(37,99,235,0.2)]">
@@ -59,13 +40,5 @@ export function FaqItem({ question, answer }: { question: string; answer: string
       </summary>
       <p className="mt-4 text-sm leading-6 text-slate-600">{answer}</p>
     </details>
-  )
-}
-
-function Star() {
-  return (
-    <svg aria-hidden="true" className="h-4 w-4 fill-current" viewBox="0 0 20 20">
-      <path d="m10 1.5 2.6 5.28 5.83.85-4.22 4.11 1 5.81L10 14.82 4.79 17.55l1-5.81L1.57 7.63l5.83-.85L10 1.5Z" />
-    </svg>
   )
 }

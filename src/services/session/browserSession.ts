@@ -18,7 +18,17 @@ export const browserSessionStorage: SessionStorage = {
 
     if (!token || !storedUser) return null
 
-    return { token, user: JSON.parse(storedUser) as AuthSession["user"] }
+    try {
+      const user = JSON.parse(storedUser) as Partial<AuthSession["user"]>
+      if (!user.id || !user.name || !user.email || !["admin", "profissional", "cliente"].includes(user.role ?? "")) {
+        this.clearSession()
+        return null
+      }
+      return { token, user: user as AuthSession["user"] }
+    } catch {
+      this.clearSession()
+      return null
+    }
   },
 
   saveSession(session) {

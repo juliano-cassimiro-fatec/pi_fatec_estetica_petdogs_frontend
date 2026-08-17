@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect } from "react"
 import { Link } from "react-router-dom"
 import { PageContainer, SectionPad, SiteHeader, SiteShell } from "../../components/layout/UnifiedPageFrame"
 import { SectionTitle } from "../../components/ui/SectionTitle"
-import { BenefitCard, ServiceCard } from "../../components/landing/LandingComponents"
+import { BenefitCard, FaqItem, ServiceCard } from "../../components/landing/LandingComponents"
 
 const whatsappNumber = "5511998112494"
 const whatsappMessage = encodeURIComponent("Olá! Quero agendar banho e tosa na PetDog's Estetica Animal em Atibaia/SP.")
@@ -49,7 +49,7 @@ const benefits = [
   },
 ]
 
-// Services are loaded from the backend; static list removed.
+// Conteúdo editorial da landing; o catálogo operacional permanece no dashboard.
 const services = [
   { title: "Banho", text: "Limpeza, hidratação e secagem com cuidado.", highlight: "Mais pedido" },
   { title: "Tosa", text: "Tosa higiênica e estética para cada raça.", highlight: "Profissional" },
@@ -80,8 +80,6 @@ const faqs = [
 ]
 
 export function LandingPage() {
-  const [scrollY, setScrollY] = useState(0)
-
   useEffect(() => {
     const description = "PetDog's Estetica Animal em Atibaia/SP. Banho e tosa premium com atendimento humanizado e agendamento via WhatsApp."
     document.title = "PetDog's Estetica Animal | Banho e Tosa em Atibaia/SP"
@@ -122,16 +120,6 @@ export function LandingPage() {
       script.remove()
     }
   }, [])
-
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY)
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    handleScroll()
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
-
-  const heroOffset = useMemo(() => Math.min(scrollY * 0.08, 48), [scrollY])
-  const heroScale = useMemo(() => 1 + Math.min(scrollY * 0.00015, 0.03), [scrollY])
 
   return (
     <SiteShell>
@@ -210,18 +198,19 @@ export function LandingPage() {
                 <div className="overflow-hidden rounded-[1.6rem]">
                   <img
                     className="h-full min-h-[320px] w-full object-cover transition duration-500"
-                    style={{ transform: `translateY(${heroOffset}px) scale(${heroScale})` }}
-                    src="https://images.pexels.com/photos/4587991/pexels-photo-4587991.jpeg?auto=compress&cs=tinysrgb&w=1200"
+                    src="https://images.pexels.com/photos/4587991/pexels-photo-4587991.jpeg?auto=compress&cs=tinysrgb&w=900"
                     alt="Cachorro feliz apos banho e tosa"
                     loading="eager"
+                    width="900"
+                    height="600"
                   />
                 </div>
                 <div className="grid gap-3">
                   <div className="overflow-hidden rounded-[1.5rem]">
-                    <img className="h-40 w-full object-cover transition duration-500 hover:scale-105" src="https://images.pexels.com/photos/4587959/pexels-photo-4587959.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Pet com aspecto limpo e bem cuidado" loading="lazy" />
+                    <img className="h-40 w-full object-cover transition duration-500 hover:scale-105" src="https://images.pexels.com/photos/4587959/pexels-photo-4587959.jpeg?auto=compress&cs=tinysrgb&w=500" alt="Pet com aspecto limpo e bem cuidado" loading="lazy" width="500" height="320" />
                   </div>
                   <div className="overflow-hidden rounded-[1.5rem]">
-                    <img className="h-40 w-full object-cover transition duration-500 hover:scale-105" src="https://images.pexels.com/photos/1805164/pexels-photo-1805164.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Filhote observando a camera" loading="lazy" />
+                    <img className="h-40 w-full object-cover transition duration-500 hover:scale-105" src="https://images.pexels.com/photos/1805164/pexels-photo-1805164.jpeg?auto=compress&cs=tinysrgb&w=500" alt="Filhote observando a camera" loading="lazy" width="500" height="320" />
                   </div>
                 </div>
               </div>
@@ -305,13 +294,7 @@ export function LandingPage() {
         <SectionTitle eyebrow="FAQ" title="Perguntas frequentes sobre banho e tosa em Atibaia" description="Conteudo estruturado para ajudar o visitante e fortalecer a busca local." />
         <div className="mt-8 grid gap-4">
           {faqs.map((item) => (
-            <details key={item.question} className="group rounded-[1.4rem] border border-slate-200 bg-white p-5 shadow-sm transition open:shadow-[0_18px_45px_-28px_rgba(37,99,235,0.2)]">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left font-black text-slate-950">
-                <span>{item.question}</span>
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-blue-50 text-blue-700 transition group-open:rotate-45">+</span>
-              </summary>
-              <p className="mt-4 text-sm leading-6 text-slate-600">{item.answer}</p>
-            </details>
+            <FaqItem key={item.question} question={item.question} answer={item.answer} />
           ))}
         </div>
         </PageContainer>
