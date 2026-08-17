@@ -1,8 +1,6 @@
-import type {  ReactNode } from "react"
-import Icon from "./Icon";
-
-type IconName = "calendar" | "services" | "users" | "clients" | "pets" | "settings" | "dashboard" | "list" | "user" | "clock" | "cut"
-
+import type { ReactNode } from "react"
+import Icon from "./Icon"
+import type { IconName } from "./Icon"
 
 function Card({ icon, title, description, children }: { icon?: IconName; title: string; description?: string; children: ReactNode }) {
   return (
