@@ -2,7 +2,6 @@ import { useState } from "react"
 import type { FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { SiteHeader, SiteShell } from "../../components/layout/UnifiedPageFrame"
-import { useAuth } from "../../hooks/useAuth"
 import { authService } from "../../services/auth/authService"
 import { presentRequestError } from "../../services/api/errors"
 
@@ -18,9 +17,7 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState("")
   const [error, setError] = useState("")
-  const { signIn } = useAuth()
 
   const titleByMode = {
     login: "Entrar na conta",
@@ -41,7 +38,6 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
     event.preventDefault()
     setLoading(true)
     setError("")
-    setMessage("")
 
     try {
       if (mode === "register") {
@@ -50,7 +46,7 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
         return
       }
 
-      await signIn({ email, password })
+      await authService.signIn({ email, password })
       navigate("/app/dashboard")
     } catch (requestError) {
       setError(presentRequestError(requestError))
@@ -114,8 +110,6 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
             </div>
 
             {error && <p className="mt-4 rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
-            {message && <p className="mt-4 rounded-2xl bg-blue-50 p-3 text-sm font-semibold text-blue-700">{message}</p>}
-
             <button className="mt-6 w-full rounded-2xl bg-blue-600 px-5 py-3 font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60" disabled={loading} type="submit">
               {loading ? "Aguarde..." : submitLabelByMode[mode]}
             </button>
