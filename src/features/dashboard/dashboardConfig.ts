@@ -51,6 +51,16 @@ export function formatCurrency(value: number) {
   return Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
 }
 
+export function validateWorkSchedule(form: { dias_trabalho: number[]; horario_inicio: string; horario_fim: string; almoco_inicio?: string; almoco_fim?: string }) {
+  if (form.dias_trabalho.length === 0) return "Selecione ao menos um dia de trabalho"
+  if (form.horario_inicio >= form.horario_fim) return "A hora inicial deve ser anterior à hora final"
+  if (form.almoco_inicio && form.almoco_fim) {
+    if (form.almoco_inicio >= form.almoco_fim) return "O início do almoço deve ser anterior ao retorno"
+    if (form.almoco_inicio < form.horario_inicio || form.almoco_fim > form.horario_fim) return "O almoço deve estar dentro do expediente"
+  }
+  return ""
+}
+
 export function getDashboardMode(role?: Role) {
   if (role === "cliente") return { label: "Cliente", title: "Área do cliente", description: "Agende serviços, acompanhe horários e atualize seus dados." }
   if (role === "profissional") return { label: "Profissional", title: "Painel profissional", description: "Organize agenda e acompanhe os atendimentos do dia." }
@@ -84,6 +94,7 @@ export async function readImage(event: ChangeEvent<HTMLInputElement>, callback: 
   const file = event.target.files?.[0]
   if (!file) return
   if (!file.type.startsWith("image/")) return onError("Selecione um arquivo de imagem válido")
+  if (file.size > 8 * 1024 * 1024) return onError("A imagem deve ter no máximo 8 MB")
   try {
     callback(await compressImage(file))
   } catch {

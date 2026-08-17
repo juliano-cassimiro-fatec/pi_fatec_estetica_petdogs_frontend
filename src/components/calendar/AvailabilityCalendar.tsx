@@ -1,38 +1,14 @@
 import { useEffect, useMemo, useState } from "react"
 import { availabilityService } from "../../services/availability/availabilityService"
+import type { DayAvailability, Professional, Service, SlotAvailability } from "../../features/shared/types"
 
-interface ProfessionalOption {
-  _id: string
-  name: string
-  especialidade?: string
-  horario_inicio?: string
-  horario_fim?: string
-}
-
-interface ServiceOption {
-  _id: string
-  name: string
-  duracao_min: number
-  preco: number
-}
+type ProfessionalOption = Pick<Professional, "_id" | "name" | "especialidade" | "horario_inicio" | "horario_fim">
+type ServiceOption = Pick<Service, "_id" | "name" | "duracao_min" | "preco">
 
 interface ScheduleValue {
   servico: string
   profissional: string
   data_hora: string
-}
-
-interface DayAvailability {
-  date: string
-  available: boolean
-  slotsCount: number
-  workingDay: boolean
-}
-
-interface SlotAvailability {
-  time: string
-  datetime: string
-  available: boolean
 }
 
 interface CalendarProps {
@@ -90,11 +66,11 @@ export function AvailabilityCalendar({ professionals, services, value, onChange,
   })
   const [monthDays, setMonthDays] = useState<DayAvailability[]>([])
   const [slots, setSlots] = useState<SlotAvailability[]>([])
+  const [selectedDate, setSelectedDate] = useState(() => value.data_hora ? value.data_hora.slice(0, 10) : "")
   const [loadingMonth, setLoadingMonth] = useState(false)
   const [loadingDay, setLoadingDay] = useState(false)
   const [calendarMessage, setCalendarMessage] = useState("Selecione profissional e serviço para ver os horários disponíveis")
 
-  const selectedDate = value.data_hora ? value.data_hora.slice(0, 10) : ""
   const selectedService = services.find((item) => item._id === value.servico)
   const selectedProfessional = professionals.find((item) => item._id === value.profissional)
   const hasPrerequisites = Boolean(value.profissional && value.servico)
@@ -185,9 +161,11 @@ export function AvailabilityCalendar({ professionals, services, value, onChange,
 
   function selectDay(date: Date) {
     const dateKey = toDateKey(date)
+    setSelectedDate(dateKey)
+    setSlots([])
     onChange({
       ...value,
-      data_hora: `${dateKey}T08:00`,
+      data_hora: "",
     })
     setMonthAnchor(date)
   }
@@ -208,7 +186,7 @@ export function AvailabilityCalendar({ professionals, services, value, onChange,
           <select
             className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
             value={value.profissional}
-            onChange={(event) => onChange({ ...value, profissional: event.target.value, data_hora: "" })}
+            onChange={(event) => { setSelectedDate(""); onChange({ ...value, profissional: event.target.value, data_hora: "" }) }}
             required
             disabled={disabled}
           >
@@ -226,7 +204,7 @@ export function AvailabilityCalendar({ professionals, services, value, onChange,
           <select
             className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
             value={value.servico}
-            onChange={(event) => onChange({ ...value, servico: event.target.value, data_hora: "" })}
+            onChange={(event) => { setSelectedDate(""); onChange({ ...value, servico: event.target.value, data_hora: "" }) }}
             required
             disabled={disabled}
           >
@@ -266,7 +244,7 @@ export function AvailabilityCalendar({ professionals, services, value, onChange,
             </div>
 
             <div className="mt-4 grid grid-cols-7 gap-2 text-center text-xs font-black uppercase tracking-[0.18em] text-slate-500">
-              {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((label) => <div key={label}>{label}</div>)}
+              {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((label) => <div key={label}>{label}</div>)}
             </div>
 
             <div className="mt-2 grid grid-cols-7 gap-2">
@@ -286,7 +264,9 @@ export function AvailabilityCalendar({ professionals, services, value, onChange,
                     key={dateKey}
                     type="button"
                     onClick={() => selectDay(cell)}
-                    disabled={disabled || loadingMonth || !workingDay}
+                    disabled={disabled || loadingMonth || !workingDay || !isAvailable}
+                    aria-label={`${dateKey}: ${isAvailable ? `${dayInfo?.slotsCount ?? 0} horários disponíveis` : workingDay ? "sem horários disponíveis" : "folga"}`}
+                    aria-pressed={isSelected}
                     className={`rounded-2xl border p-3 text-left transition ${isSelected ? "border-blue-500 bg-blue-600 text-white shadow-sm" : workingDay ? "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50" : "border-dashed border-slate-200 bg-slate-100 text-slate-400"}`}
                   >
                     <span className="block text-sm font-black">{cell.getDate()}</span>
@@ -306,7 +286,7 @@ export function AvailabilityCalendar({ professionals, services, value, onChange,
                 <h3 className="mt-1 text-lg font-black text-slate-950">
                   {selectedDate || "Selecione um dia"}
                 </h3>
-                <p className="mt-1 text-sm text-slate-600">
+                <p className="mt-1 text-sm text-slate-600" aria-live="polite">
                   {selectedProfessional ? `${selectedProfessional.name}${selectedProfessional.especialidade ? ` - ${selectedProfessional.especialidade}` : ""}` : "Escolha um profissional"}
                   {selectedService ? ` • ${selectedService.name} (${selectedService.duracao_min} min)` : ""}
                 </p>

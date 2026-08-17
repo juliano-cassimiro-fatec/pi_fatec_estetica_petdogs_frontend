@@ -6,8 +6,6 @@ export interface AuthUser {
   email: string
   role: UserRole
   foto?: string
-  token?: string
-  senha?: string
 }
 
 export interface AuthSession {
@@ -69,7 +67,7 @@ export interface Professional {
 export interface Schedule {
   _id: string
   data_hora: string
-  status: "scheduled" | "canceled"
+  status: "scheduled" | "canceled" | "completed" | "pending" | "confirmed"
   cliente?: Customer
   animal?: Pet
   servico?: Service
@@ -87,14 +85,4 @@ export interface SlotAvailability {
   time: string
   datetime: string
   available: boolean
-}
-
-export interface DashboardData {
-  user: AuthUser
-  pets: Pet[]
-  services: Service[]
-  professionals: Professional[]
-  customers: Customer[]
-  schedules: Schedule[]
-  profile?: Customer | Professional
 }

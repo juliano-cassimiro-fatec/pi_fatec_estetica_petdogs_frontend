@@ -6,7 +6,7 @@ import { Modal } from "../../components/ui/Modal"
 import { SiteHeader, SiteShell } from "../../components/layout/UnifiedPageFrame"
 import type { AuthUser, Customer, Pet, Professional, Schedule, Service } from "../../features/shared/types"
 import { dashboardService } from "../../services/dashboard/dashboardService"
-import { authService } from "../../services/auth/authService"
+import { useAuth } from "../../services/auth/useAuth"
 import { isUnauthorizedError, presentRequestError } from "../../services/api/errors"
 import { emptyProfileForm, presentProfileForm } from "../../features/dashboard/profileForm"
 import Card from "../../components/ui/Card"
@@ -14,11 +14,13 @@ import Icon from "../../components/ui/Icon"
 import Field from "../../components/ui/Field"
 import PhotoPreview from "../../components/ui/PhotoPreview"
 import { DashboardFeedback, DashboardHeader, DashboardMetrics, DashboardNavigation, HeaderUserSummary } from "../../components/dashboard/DashboardChrome"
-import { buttonClass, dangerButtonClass, emptyClientForm, emptyPetForm, emptyProfessionalForm, emptyServiceForm, formatCurrency, getDashboardMode, inputClass, readImage, secondaryButtonClass, weekdayOptions } from "../../features/dashboard/dashboardConfig"
+import { buttonClass, dangerButtonClass, emptyClientForm, emptyPetForm, emptyProfessionalForm, emptyServiceForm, formatCurrency, getDashboardMode, inputClass, readImage, secondaryButtonClass, validateWorkSchedule, weekdayOptions } from "../../features/dashboard/dashboardConfig"
 import type { ConfirmModalState, DashboardTab, ScheduleFormState, TabKey } from "../../features/dashboard/dashboardConfig"
+import { can } from "../../features/dashboard/permissions"
 
 export function DashboardPage() {
   const navigate = useNavigate()
+  const { signOut, refreshUser } = useAuth()
   const [user, setUser] = useState<AuthUser | null>(null)
   const [activeTab, setActiveTab] = useState<TabKey>("agenda")
   const [pets, setPets] = useState<Pet[]>([])
@@ -61,18 +63,15 @@ export function DashboardPage() {
     { key: "perfil", label: "Perfil", icon: "settings", show: isCustomer || isProfessional },
   ]
 
-  const clearSession = useCallback(() => {
-    authService.signOut()
-    setUser(null)
-  }, [])
-
   const logout = useCallback(() => {
-    clearSession()
+    signOut()
+    setUser(null)
     navigate("/login", { replace: true })
-  }, [clearSession, navigate])
+  }, [navigate, signOut])
 
   const loadData = useCallback(async () => {
     try {
+      setLoading(true)
       setError("")
       const dashboardData = await dashboardService.loadDashboard()
       setUser(dashboardData.user)
@@ -109,10 +108,15 @@ export function DashboardPage() {
     try {
       setSaving(true)
       setError("")
+      setMessage("")
       await action()
       setMessage(success)
       await loadData()
     } catch (requestError) {
+      if (isUnauthorizedError(requestError)) {
+        logout()
+        return
+      }
       setError(presentRequestError(requestError))
     } finally {
       setSaving(false)
@@ -177,7 +181,7 @@ export function DashboardPage() {
       animal: schedule.animal?._id ?? "",
       servico: schedule.servico?._id ?? "",
       profissional: schedule.profissional?._id ?? "",
-      data_hora: schedule.data_hora ? new Date(schedule.data_hora).toISOString().slice(0, 16) : "",
+      data_hora: schedule.data_hora ? schedule.data_hora.slice(0, 16) : "",
     })
     setActiveTab("agenda")
     setScheduleModalOpen(true)
@@ -236,6 +240,8 @@ export function DashboardPage() {
 
   async function handleProfessionalSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const validationError = validateWorkSchedule(professionalForm)
+    if (validationError) { setError(validationError); return }
     await submit(async () => {
       const payload = { ...professionalForm, senha: professionalForm.senha || undefined }
       await dashboardService.saveProfessional(payload, editingProfessionalId)
@@ -258,8 +264,13 @@ export function DashboardPage() {
 
   async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (isProfessional) {
+      const validationError = validateWorkSchedule(profileForm)
+      if (validationError) { setError(validationError); return }
+    }
     await submit(async () => {
       await dashboardService.updateProfile(user?.role ?? "cliente", profileForm)
+      await refreshUser()
     }, "Perfil atualizado com sucesso")
   }
 
@@ -302,10 +313,11 @@ export function DashboardPage() {
             <DashboardHeader user={user} mode={dashboardMode} />
 
             <div className="grid gap-4 px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
+              <DashboardFeedback message={message} error={error} loading={loading} onRetry={user ? undefined : () => void loadData()} />
+
+              {!loading && user && <>
               <DashboardMetrics schedules={schedules.length} services={services.length} professionals={professionals.length} />
               <DashboardNavigation tabs={availableTabs} activeTab={activeTab} onChange={setActiveTab} />
-              <DashboardFeedback message={message} error={error} loading={loading} />
-
               {activeTab === "servicos" && (isAdmin || isCustomer) && (
                 <section className={`grid gap-6 ${isAdmin ? "xl:grid-cols-[minmax(320px,420px)_1fr]" : ""}`}>
                   {isAdmin && (
@@ -353,7 +365,7 @@ export function DashboardPage() {
                         <Field label="Nome *"><input className={inputClass} value={professionalForm.name} onChange={(event) => setProfessionalForm({ ...professionalForm, name: event.target.value })} required /></Field>
                         <Field label="E-mail *"><input className={inputClass} type="email" value={professionalForm.email} onChange={(event) => setProfessionalForm({ ...professionalForm, email: event.target.value })} required /></Field>
                         <Field label={editingProfessionalId ? "Nova senha" : "Senha inicial *"} hint={editingProfessionalId ? "Deixe em branco para manter a senha atual." : "Mínimo de 6 caracteres."}><input className={inputClass} minLength={6} type="password" value={professionalForm.senha} onChange={(event) => setProfessionalForm({ ...professionalForm, senha: event.target.value })} required={!editingProfessionalId} /></Field>
-                        <Field label="Telefone"><input className={inputClass} value={professionalForm.telefone} onChange={(event) => setProfessionalForm({ ...professionalForm, telefone: event.target.value })} /></Field>
+                        <Field label="Telefone"><input className={inputClass} type="tel" value={professionalForm.telefone} onChange={(event) => setProfessionalForm({ ...professionalForm, telefone: event.target.value })} /></Field>
                         <Field label="Especialidade *"><input className={inputClass} value={professionalForm.especialidade} onChange={(event) => setProfessionalForm({ ...professionalForm, especialidade: event.target.value })} required /></Field>
                         <div className="grid gap-4">
                           <div className="grid gap-2 text-sm font-bold text-slate-700">
@@ -363,6 +375,7 @@ export function DashboardPage() {
                                 <button
                                   key={option.value}
                                   type="button"
+                                  aria-pressed={professionalForm.dias_trabalho.includes(option.value)}
                                   className={`rounded-2xl border px-3 py-2 text-sm font-bold transition ${professionalForm.dias_trabalho.includes(option.value) ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-700"}`}
                                   onClick={() => setProfessionalForm({
                                     ...professionalForm,
@@ -420,7 +433,7 @@ export function DashboardPage() {
                       <Field label="Nome *"><input className={inputClass} value={clientForm.name} onChange={(event) => setClientForm({ ...clientForm, name: event.target.value })} required /></Field>
                       <Field label="E-mail *"><input className={inputClass} type="email" value={clientForm.email} onChange={(event) => setClientForm({ ...clientForm, email: event.target.value })} required /></Field>
                       <Field label={editingClientId ? "Nova senha" : "Senha inicial *"} hint={editingClientId ? "Opcional na edição." : "Mínimo de 6 caracteres."}><input className={inputClass} minLength={6} type="password" value={clientForm.senha} onChange={(event) => setClientForm({ ...clientForm, senha: event.target.value })} required={!editingClientId} /></Field>
-                      <Field label="Telefone"><input className={inputClass} value={clientForm.telefone} onChange={(event) => setClientForm({ ...clientForm, telefone: event.target.value })} /></Field>
+                      <Field label="Telefone"><input className={inputClass} type="tel" value={clientForm.telefone} onChange={(event) => setClientForm({ ...clientForm, telefone: event.target.value })} /></Field>
                       <Field label="Foto"><input className={inputClass} type="file" accept="image/*" onChange={(event) => void readImage(event, (foto) => setClientForm({ ...clientForm, foto }), setError)} /></Field>
                       <PhotoPreview src={clientForm.foto} alt="Prévia do cliente" />
                       <div className="flex flex-wrap gap-2"><button className={buttonClass} disabled={saving}>{editingClientId ? "Salvar alterações" : "Cadastrar cliente"}</button>{editingClientId && <button className={secondaryButtonClass} type="button" onClick={() => { setEditingClientId(null); setClientForm(emptyClientForm()) }}>Cancelar edição</button>}</div>
@@ -490,7 +503,7 @@ export function DashboardPage() {
                       <div className="grid gap-4 md:grid-cols-2">
                         <Field label="Nome *"><input className={inputClass} value={profileForm.name} onChange={(event) => setProfileForm({ ...profileForm, name: event.target.value })} required /></Field>
                         <Field label="E-mail *"><input className={inputClass} type="email" value={profileForm.email} onChange={(event) => setProfileForm({ ...profileForm, email: event.target.value })} required /></Field>
-                        <Field label="Telefone"><input className={inputClass} value={profileForm.telefone} onChange={(event) => setProfileForm({ ...profileForm, telefone: event.target.value })} /></Field>
+                        <Field label="Telefone"><input className={inputClass} type="tel" value={profileForm.telefone} onChange={(event) => setProfileForm({ ...profileForm, telefone: event.target.value })} /></Field>
                         <Field label="Foto"><input className={inputClass} type="file" accept="image/*" onChange={(event) => void readImage(event, (foto) => setProfileForm({ ...profileForm, foto }), setError)} /></Field>
                         {isProfessional && <Field label="Especialidade *"><input className={inputClass} value={profileForm.especialidade} onChange={(event) => setProfileForm({ ...profileForm, especialidade: event.target.value })} required /></Field>}
                         {isProfessional && (
@@ -501,6 +514,7 @@ export function DashboardPage() {
                                 <button
                                   key={option.value}
                                   type="button"
+                                  aria-pressed={profileForm.dias_trabalho.includes(option.value)}
                                   className={`rounded-2xl border px-3 py-2 text-sm font-bold transition ${profileForm.dias_trabalho.includes(option.value) ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-700"}`}
                                   onClick={() => setProfileForm({
                                     ...profileForm,
@@ -555,8 +569,8 @@ export function DashboardPage() {
                               <p className="mt-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">{new Date(schedule.data_hora).toLocaleString()} • {schedule.status}</p>
                             </div>
                             <div className="flex flex-wrap gap-2">
-                              {(isCustomer || isAdmin || isProfessional) && schedule.status === "scheduled" && <button className={secondaryButtonClass} type="button" onClick={() => startEditSchedule(schedule)} disabled={saving}>Editar</button>}
-                              {(isCustomer || isAdmin) && schedule.status === "scheduled" && <button className={dangerButtonClass} onClick={() => openDeleteConfirm({ title: "Cancelar agendamento?", description: "Você realmente deseja cancelar este agendamento? Esta ação pode ser revertida apenas criando um novo horário.", confirmLabel: "Cancelar agendamento", tone: "warning", onConfirm: () => cancelSchedule(schedule._id) })} disabled={saving}>Cancelar</button>}
+                              {can(user?.role, "schedule:edit") && schedule.status === "scheduled" && <button className={secondaryButtonClass} type="button" onClick={() => startEditSchedule(schedule)} disabled={saving}>Editar</button>}
+                              {can(user?.role, "schedule:cancel") && schedule.status === "scheduled" && <button className={dangerButtonClass} type="button" onClick={() => openDeleteConfirm({ title: "Cancelar agendamento?", description: "Você realmente deseja cancelar este agendamento? Esta ação pode ser revertida apenas criando um novo horário.", confirmLabel: "Cancelar agendamento", tone: "warning", onConfirm: () => cancelSchedule(schedule._id) })} disabled={saving}>Cancelar</button>}
                             </div>
                           </div>
                         </article>
@@ -583,7 +597,7 @@ export function DashboardPage() {
                     disabled={saving}
                   />
                   <div className="flex flex-wrap gap-2 pt-2">
-                    <button className={buttonClass} disabled={saving || pets.length === 0 || services.length === 0 || professionals.length === 0}>
+                    <button className={buttonClass} disabled={saving || !scheduleForm.data_hora || pets.length === 0 || services.length === 0 || professionals.length === 0}>
                       {editingScheduleId ? "Salvar agendamento" : "Confirmar agendamento"}
                     </button>
                     <button className={secondaryButtonClass} type="button" onClick={closeScheduleModal}>
@@ -622,14 +636,14 @@ export function DashboardPage() {
                   <Field label="Nome *"><input className={inputClass} value={professionalForm.name} onChange={(event) => setProfessionalForm({ ...professionalForm, name: event.target.value })} required /></Field>
                   <Field label="E-mail *"><input className={inputClass} type="email" value={professionalForm.email} onChange={(event) => setProfessionalForm({ ...professionalForm, email: event.target.value })} required /></Field>
                   <Field label={editingProfessionalId ? "Nova senha" : "Senha inicial *"} hint={editingProfessionalId ? "Deixe em branco para manter a senha atual." : "Mínimo de 6 caracteres."}><input className={inputClass} minLength={6} type="password" value={professionalForm.senha} onChange={(event) => setProfessionalForm({ ...professionalForm, senha: event.target.value })} required={!editingProfessionalId} /></Field>
-                  <Field label="Telefone"><input className={inputClass} value={professionalForm.telefone} onChange={(event) => setProfessionalForm({ ...professionalForm, telefone: event.target.value })} /></Field>
+                  <Field label="Telefone"><input className={inputClass} type="tel" value={professionalForm.telefone} onChange={(event) => setProfessionalForm({ ...professionalForm, telefone: event.target.value })} /></Field>
                   <Field label="Especialidade *"><input className={inputClass} value={professionalForm.especialidade} onChange={(event) => setProfessionalForm({ ...professionalForm, especialidade: event.target.value })} required /></Field>
                   <div className="grid gap-4">
                     <div className="grid gap-2 text-sm font-bold text-slate-700">
                       <span>Dias de trabalho *</span>
                       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
                         {weekdayOptions.map((option) => (
-                          <button key={option.value} type="button" className={`rounded-2xl border px-3 py-2 text-sm font-bold transition ${professionalForm.dias_trabalho.includes(option.value) ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-700"}`} onClick={() => setProfessionalForm({ ...professionalForm, dias_trabalho: professionalForm.dias_trabalho.includes(option.value) ? professionalForm.dias_trabalho.filter((item) => item !== option.value) : [...professionalForm.dias_trabalho, option.value] })}>
+                          <button key={option.value} type="button" aria-pressed={professionalForm.dias_trabalho.includes(option.value)} className={`rounded-2xl border px-3 py-2 text-sm font-bold transition ${professionalForm.dias_trabalho.includes(option.value) ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-700"}`} onClick={() => setProfessionalForm({ ...professionalForm, dias_trabalho: professionalForm.dias_trabalho.includes(option.value) ? professionalForm.dias_trabalho.filter((item) => item !== option.value) : [...professionalForm.dias_trabalho, option.value] })}>
                             {option.label}
                           </button>
                         ))}
@@ -655,7 +669,7 @@ export function DashboardPage() {
                   <Field label="Nome *"><input className={inputClass} value={clientForm.name} onChange={(event) => setClientForm({ ...clientForm, name: event.target.value })} required /></Field>
                   <Field label="E-mail *"><input className={inputClass} type="email" value={clientForm.email} onChange={(event) => setClientForm({ ...clientForm, email: event.target.value })} required /></Field>
                   <Field label={editingClientId ? "Nova senha" : "Senha inicial *"} hint={editingClientId ? "Opcional na edição." : "Mínimo de 6 caracteres."}><input className={inputClass} minLength={6} type="password" value={clientForm.senha} onChange={(event) => setClientForm({ ...clientForm, senha: event.target.value })} required={!editingClientId} /></Field>
-                  <Field label="Telefone"><input className={inputClass} value={clientForm.telefone} onChange={(event) => setClientForm({ ...clientForm, telefone: event.target.value })} /></Field>
+                  <Field label="Telefone"><input className={inputClass} type="tel" value={clientForm.telefone} onChange={(event) => setClientForm({ ...clientForm, telefone: event.target.value })} /></Field>
                   <Field label="Foto"><input className={inputClass} type="file" accept="image/*" onChange={(event) => void readImage(event, (foto) => setClientForm({ ...clientForm, foto }), setError)} /></Field>
                   <PhotoPreview src={clientForm.foto} alt="Prévia do cliente" />
                   <div className="flex flex-wrap gap-2 pt-2"><button className={buttonClass} disabled={saving}>{editingClientId ? "Salvar alterações" : "Cadastrar cliente"}</button><button className={secondaryButtonClass} type="button" onClick={closeClientEditModal}>Cancelar</button></div>
@@ -689,6 +703,7 @@ export function DashboardPage() {
                   </div>
                 </div>
               </Modal>
+              </>}
             </div>
           </div>
         </div>

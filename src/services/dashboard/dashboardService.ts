@@ -123,8 +123,16 @@ export function createDashboardService(repository: DashboardRepository) {
     saveProfessional: repository.saveProfessional.bind(repository),
     saveCustomer: repository.saveCustomer.bind(repository),
     saveSchedule: repository.saveSchedule.bind(repository),
-    updateProfile(role: AuthUser["role"], payload: import("./types").ProfilePayload) {
-      return role === "profissional" ? repository.updateProfessionalProfile(payload) : repository.updateCustomerProfile(payload)
+    updateProfile(role: AuthUser["role"], payload: import("../../features/dashboard/profileForm").ProfileFormState) {
+      if (role === "profissional") {
+        return repository.updateProfessionalProfile({
+          name: payload.name, email: payload.email, telefone: payload.telefone, foto: payload.foto,
+          especialidade: payload.especialidade, dias_trabalho: payload.dias_trabalho,
+          horario_inicio: payload.horario_inicio, horario_fim: payload.horario_fim,
+          almoco_inicio: payload.almoco_inicio, almoco_fim: payload.almoco_fim,
+        })
+      }
+      return repository.updateCustomerProfile({ name: payload.name, email: payload.email, telefone: payload.telefone, foto: payload.foto })
     },
     removeResource: repository.remove.bind(repository),
     cancelSchedule: repository.cancelSchedule.bind(repository),

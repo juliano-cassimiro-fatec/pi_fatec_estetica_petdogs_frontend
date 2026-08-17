@@ -10,7 +10,8 @@ export type SchedulePayload = {
   profissional: string
   data_hora: string
 }
-export type ProfilePayload = Partial<CustomerPayload & ProfessionalPayload>
+export type CustomerProfilePayload = Pick<Customer, "name" | "email" | "telefone" | "foto">
+export type ProfessionalProfilePayload = Pick<Professional, "name" | "email" | "telefone" | "foto" | "especialidade" | "dias_trabalho" | "horario_inicio" | "horario_fim" | "almoco_inicio" | "almoco_fim">
 
 export interface DashboardRepository {
   getMe(): Promise<AuthUser>
@@ -25,8 +26,8 @@ export interface DashboardRepository {
   saveProfessional(payload: ProfessionalPayload, id?: string | null): Promise<void>
   saveCustomer(payload: CustomerPayload, id?: string | null): Promise<void>
   saveSchedule(payload: SchedulePayload, id?: string | null): Promise<void>
-  updateCustomerProfile(payload: ProfilePayload): Promise<void>
-  updateProfessionalProfile(payload: ProfilePayload): Promise<void>
+  updateCustomerProfile(payload: CustomerProfilePayload): Promise<void>
+  updateProfessionalProfile(payload: ProfessionalProfilePayload): Promise<void>
   remove(path: string): Promise<void>
   cancelSchedule(id: string): Promise<void>
 }
