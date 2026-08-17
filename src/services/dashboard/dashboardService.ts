@@ -1,6 +1,6 @@
-import type { DashboardRepository } from "../../application/ports/dashboardRepository"
-import type { AuthUser, Customer, Pet, Professional, Schedule, Service } from "../../domain/entities"
-import apiClient from "../http/apiClient"
+import type { DashboardRepository } from "./types"
+import type { AuthUser, Customer, Pet, Professional, Schedule, Service } from "../../features/shared/types"
+import apiClient from "../api/client"
 
 export const axiosDashboardRepository: DashboardRepository = {
   async getMe() {
@@ -99,3 +99,36 @@ export const axiosDashboardRepository: DashboardRepository = {
     await apiClient.patch(`/agendamentos/${id}/cancel`)
   },
 }
+
+function findProfessionalProfile(user: AuthUser, professionals: Professional[]): Professional | undefined {
+  return professionals.find((item) => item._id === user.id)
+}
+
+export function createDashboardService(repository: DashboardRepository) {
+  return {
+    async loadDashboard() {
+      const user = await repository.getMe()
+      const [services, professionals, schedules] = await Promise.all([
+        repository.listServices(), repository.listProfessionals(), repository.listSchedules(),
+      ])
+      const [pets, customers, customerProfile] = await Promise.all([
+        user.role === "cliente" || user.role === "admin" ? repository.listPets() : Promise.resolve([]),
+        user.role === "admin" ? repository.listCustomers() : Promise.resolve([]),
+        user.role === "cliente" ? repository.getCustomerProfile() : Promise.resolve<Customer | undefined>(undefined),
+      ])
+      return { user, pets, services, professionals, customers, schedules, profile: user.role === "profissional" ? findProfessionalProfile(user, professionals) : customerProfile }
+    },
+    savePet: repository.savePet.bind(repository),
+    saveService: repository.saveService.bind(repository),
+    saveProfessional: repository.saveProfessional.bind(repository),
+    saveCustomer: repository.saveCustomer.bind(repository),
+    saveSchedule: repository.saveSchedule.bind(repository),
+    updateProfile(role: AuthUser["role"], payload: import("./types").ProfilePayload) {
+      return role === "profissional" ? repository.updateProfessionalProfile(payload) : repository.updateCustomerProfile(payload)
+    },
+    removeResource: repository.remove.bind(repository),
+    cancelSchedule: repository.cancelSchedule.bind(repository),
+  }
+}
+
+export const dashboardService = createDashboardService(axiosDashboardRepository)

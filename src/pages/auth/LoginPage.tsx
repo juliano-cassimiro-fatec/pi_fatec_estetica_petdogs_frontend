@@ -3,8 +3,8 @@ import type { FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { SiteHeader, SiteShell } from "../../components/layout/UnifiedPageFrame"
 import { useAuth } from "../../hooks/useAuth"
-import { authController } from "../../interface-adapters/controllers/authController"
-import { presentRequestError } from "../../interface-adapters/presenters/errorPresenter"
+import { authService } from "../../services/auth/authService"
+import { presentRequestError } from "../../services/api/errors"
 
 type Mode = "login" | "register"
 
@@ -45,7 +45,7 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
 
     try {
       if (mode === "register") {
-        await authController.registerCustomer({ name, email, password })
+        await authService.registerCustomer({ name, email, password })
         navigate("/app/dashboard")
         return
       }

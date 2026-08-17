@@ -1,5 +1,11 @@
-import type { AuthSession } from "../../domain/entities"
-import type { SessionStorage } from "../../application/ports/sessionStorage"
+import type { AuthSession } from "../../features/shared/types"
+
+export interface SessionStorage {
+  getSession(): AuthSession | null
+  saveSession(session: AuthSession): void
+  clearSession(): void
+  getToken(): string | null
+}
 
 const tokenKey = "petshop-token"
 const legacyTokenKey = "token"
@@ -10,14 +16,9 @@ export const browserSessionStorage: SessionStorage = {
     const token = this.getToken()
     const storedUser = localStorage.getItem(userKey)
 
-    if (!token || !storedUser) {
-      return null
-    }
+    if (!token || !storedUser) return null
 
-    return {
-      token,
-      user: JSON.parse(storedUser) as AuthSession["user"],
-    }
+    return { token, user: JSON.parse(storedUser) as AuthSession["user"] }
   },
 
   saveSession(session) {

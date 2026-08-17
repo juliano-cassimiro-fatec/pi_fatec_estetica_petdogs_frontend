@@ -1,6 +1,6 @@
-import type { AuthRepository } from "../../application/ports/authRepository"
-import type { AuthSession, LoginCredentials, RegisterCustomerData } from "../../domain/entities"
-import apiClient from "../http/apiClient"
+import type { AuthRepository } from "./types"
+import type { AuthSession, LoginCredentials, RegisterCustomerData } from "../../features/shared/types"
+import apiClient from "../api/client"
 
 interface MeResponse {
   user: AuthSession["user"]

@@ -1,6 +1,6 @@
-import type { AuthRepository } from "../ports/authRepository"
-import type { SessionStorage } from "../ports/sessionStorage"
-import type { AuthSession, LoginCredentials, RegisterCustomerData } from "../../domain/entities"
+import type { AuthRepository } from "./types"
+import type { SessionStorage } from "../session/browserSession"
+import type { AuthSession, LoginCredentials, RegisterCustomerData } from "../../features/shared/types"
 
 export function createAuthUseCases(repository: AuthRepository, storage: SessionStorage) {
   return {
@@ -29,3 +29,8 @@ export function createAuthUseCases(repository: AuthRepository, storage: SessionS
     },
   }
 }
+
+import { axiosAuthRepository } from "./authApi"
+import { browserSessionStorage } from "../session/browserSession"
+
+export const authService = createAuthUseCases(axiosAuthRepository, browserSessionStorage)
