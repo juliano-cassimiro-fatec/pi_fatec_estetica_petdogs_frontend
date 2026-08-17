@@ -5,11 +5,11 @@ import { Avatar } from "../../components/ui/Avatar"
 import { AvailabilityCalendar } from "../../components/calendar/AvailabilityCalendar"
 import { Modal } from "../../components/ui/Modal"
 import { SiteHeader, SiteShell } from "../../components/layout/UnifiedPageFrame"
-import type { AuthUser, Customer, Pet, Professional, Schedule, Service } from "../../domain/entities"
-import { dashboardController } from "../../interface-adapters/controllers/dashboardController"
-import { authController } from "../../interface-adapters/controllers/authController"
-import { isUnauthorizedError, presentRequestError } from "../../interface-adapters/presenters/errorPresenter"
-import { emptyProfileForm, presentProfileForm } from "../../interface-adapters/presenters/profilePresenter"
+import type { AuthUser, Customer, Pet, Professional, Schedule, Service } from "../../features/shared/types"
+import { dashboardService } from "../../services/dashboard/dashboardService"
+import { authService } from "../../services/auth/authService"
+import { isUnauthorizedError, presentRequestError } from "../../services/api/errors"
+import { emptyProfileForm, presentProfileForm } from "../../features/dashboard/profileForm"
 import Card from "../../components/ui/Card"
 import Icon from "../../components/ui/Icon"
 import type { IconName } from "../../components/ui/Icon"
@@ -183,7 +183,7 @@ export function DashboardPage() {
   ]
 
   const clearSession = useCallback(() => {
-    authController.signOut()
+    authService.signOut()
     setUser(null)
   }, [])
 
@@ -195,7 +195,7 @@ export function DashboardPage() {
   const loadData = useCallback(async () => {
     try {
       setError("")
-      const dashboardData = await dashboardController.loadDashboard()
+      const dashboardData = await dashboardService.loadDashboard()
       setUser(dashboardData.user)
       setPets(dashboardData.pets)
       setServices(dashboardData.services)
@@ -327,7 +327,7 @@ export function DashboardPage() {
     event.preventDefault()
     await submit(async () => {
       const payload = { ...petForm, idade: Number(petForm.idade), cliente: isAdmin ? petForm.cliente : undefined }
-      await dashboardController.savePet(payload, editingPetId)
+      await dashboardService.savePet(payload, editingPetId)
       setPetForm(emptyPetForm())
       setEditingPetId(null)
       setPetEditModalOpen(false)
@@ -337,7 +337,7 @@ export function DashboardPage() {
   async function handleScheduleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     await submit(async () => {
-      await dashboardController.saveSchedule(scheduleForm, editingScheduleId)
+      await dashboardService.saveSchedule(scheduleForm, editingScheduleId)
       setScheduleForm({ animal: "", servico: "", profissional: "", data_hora: "" })
       setEditingScheduleId(null)
       setScheduleModalOpen(false)
@@ -348,7 +348,7 @@ export function DashboardPage() {
     event.preventDefault()
     await submit(async () => {
       const payload = { ...serviceForm, duracao_min: Number(serviceForm.duracao_min), preco: Number(serviceForm.preco) }
-      await dashboardController.saveService(payload, editingServiceId)
+      await dashboardService.saveService(payload, editingServiceId)
       setServiceForm(emptyServiceForm())
       setEditingServiceId(null)
       setServiceEditModalOpen(false)
@@ -359,7 +359,7 @@ export function DashboardPage() {
     event.preventDefault()
     await submit(async () => {
       const payload = { ...professionalForm, senha: professionalForm.senha || undefined }
-      await dashboardController.saveProfessional(payload, editingProfessionalId)
+      await dashboardService.saveProfessional(payload, editingProfessionalId)
       setProfessionalForm(emptyProfessionalForm())
       setEditingProfessionalId(null)
       setProfessionalEditModalOpen(false)
@@ -370,7 +370,7 @@ export function DashboardPage() {
     event.preventDefault()
     await submit(async () => {
       const payload = { ...clientForm, senha: clientForm.senha || undefined }
-      await dashboardController.saveCustomer(payload, editingClientId)
+      await dashboardService.saveCustomer(payload, editingClientId)
       setClientForm(emptyClientForm())
       setEditingClientId(null)
       setClientEditModalOpen(false)
@@ -380,19 +380,19 @@ export function DashboardPage() {
   async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     await submit(async () => {
-      await dashboardController.updateProfile(user?.role ?? "cliente", profileForm)
+      await dashboardService.updateProfile(user?.role ?? "cliente", profileForm)
     }, "Perfil atualizado com sucesso")
   }
 
   async function removeResource(path: string, success: string) {
     await submit(async () => {
-      await dashboardController.removeResource(path)
+      await dashboardService.removeResource(path)
     }, success)
   }
 
   async function cancelSchedule(id: string) {
     await submit(async () => {
-      await dashboardController.cancelSchedule(id)
+      await dashboardService.cancelSchedule(id)
     }, "Agendamento cancelado")
   }
 

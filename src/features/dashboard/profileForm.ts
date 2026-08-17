@@ -1,4 +1,4 @@
-import type { Customer, Professional } from "../../domain/entities"
+import type { Customer, Professional } from "../../features/shared/types"
 
 export interface ProfileFormState {
   name: string

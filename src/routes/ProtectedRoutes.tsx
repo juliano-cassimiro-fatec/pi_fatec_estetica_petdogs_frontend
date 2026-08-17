@@ -1,13 +1,13 @@
 import type { ReactNode } from "react"
 import { Navigate } from "react-router-dom"
-import { authController } from "../interface-adapters/controllers/authController"
+import { authService } from "../services/auth/authService"
 
 interface ProtectedRoutesProps {
   children: ReactNode
 }
 
 export function ProtectedRoutes({ children }: ProtectedRoutesProps) {
-  if (!authController.hasValidSession()) {
+  if (!authService.hasValidSession()) {
     return <Navigate to="/login" replace />
   }
 

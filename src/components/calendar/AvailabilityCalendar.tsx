@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { availabilityController } from "../../interface-adapters/controllers/availabilityController"
+import { availabilityService } from "../../services/availability/availabilityService"
 
 interface ProfessionalOption {
   _id: string
@@ -119,7 +119,7 @@ export function AvailabilityCalendar({ professionals, services, value, onChange,
       if (active) setLoadingMonth(true)
     })
 
-    availabilityController.getMonthAvailability({
+    availabilityService.getMonthAvailability({
       profissionalId: value.profissional,
       servicoId: value.servico,
       month: toMonthKey(monthAnchor),
@@ -156,7 +156,7 @@ export function AvailabilityCalendar({ professionals, services, value, onChange,
       if (active) setLoadingDay(true)
     })
 
-    availabilityController.getDayAvailability({
+    availabilityService.getDayAvailability({
       profissionalId: value.profissional,
       servicoId: value.servico,
       date: selectedDate,

@@ -1,4 +1,4 @@
-import type { AuthUser, Customer, Pet, Professional, Schedule, Service } from "../../domain/entities"
+import type { AuthUser, Customer, Pet, Professional, Schedule, Service } from "../../features/shared/types"
 
 export type PetPayload = Omit<Pet, "_id" | "cliente"> & { cliente?: string }
 export type ServicePayload = Omit<Service, "_id">

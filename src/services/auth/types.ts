@@ -1,4 +1,4 @@
-import type { AuthSession, LoginCredentials, RegisterCustomerData } from "../../domain/entities"
+import type { AuthSession, LoginCredentials, RegisterCustomerData } from "../../features/shared/types"
 
 export interface AuthRepository {
   login(credentials: LoginCredentials): Promise<AuthSession>

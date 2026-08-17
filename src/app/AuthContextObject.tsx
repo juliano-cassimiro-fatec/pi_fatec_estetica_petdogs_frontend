@@ -1,5 +1,5 @@
 import { createContext } from "react"
-import type { AuthSession, LoginCredentials } from "../domain/entities"
+import type { AuthSession, LoginCredentials } from "../features/shared/types"
 
 interface AuthContextData {
   user: AuthSession["user"] | null
