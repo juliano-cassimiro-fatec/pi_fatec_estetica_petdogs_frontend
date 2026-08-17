@@ -1,7 +1,6 @@
 import type { ReactNode } from "react"
 
-type IconName = "calendar" | "services" | "users" | "clients" | "pets" | "settings" | "dashboard" | "list" | "user" | "clock" | "cut"
-
+export type IconName = "calendar" | "services" | "users" | "clients" | "pets" | "settings" | "dashboard" | "list" | "user" | "clock" | "cut"
 
 function Icon({ name, className = "h-5 w-5" }: { name: IconName; className?: string }) {
   const paths: Record<IconName, ReactNode> = {
@@ -25,5 +24,4 @@ function Icon({ name, className = "h-5 w-5" }: { name: IconName; className?: str
   )
 }
 
-
-export default Icon;
+export default Icon

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
-import type { ChangeEvent, FormEvent, ReactNode } from "react"
+import type { ChangeEvent, FormEvent } from "react"
 import { useNavigate } from "react-router-dom"
 import { Avatar } from "../../components/ui/Avatar"
 import { AvailabilityCalendar } from "../../components/calendar/AvailabilityCalendar"
@@ -12,8 +12,9 @@ import { isUnauthorizedError, presentRequestError } from "../../interface-adapte
 import { emptyProfileForm, presentProfileForm } from "../../interface-adapters/presenters/profilePresenter"
 import Card from "../../components/ui/Card"
 import Icon from "../../components/ui/Icon"
-import Field from "../../components/ui/field"
-import PhotoPreview from "../../components/ui/photopreview"
+import type { IconName } from "../../components/ui/Icon"
+import Field from "../../components/ui/Field"
+import PhotoPreview from "../../components/ui/PhotoPreview"
 import MetricCard from "../../components/ui/MetricCard"
 
 type Role = AuthUser["role"]
@@ -40,70 +41,6 @@ const buttonClass = "inline-flex items-center justify-center rounded-2xl bg-blue
 const secondaryButtonClass = "inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
 const dangerButtonClass = "inline-flex items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-4 py-2.5 font-bold text-red-700 transition hover:bg-red-100 focus:outline-none focus:ring-4 focus:ring-red-100 disabled:cursor-not-allowed disabled:opacity-60"
 
-type IconName = "calendar" | "services" | "users" | "clients" | "pets" | "settings" | "dashboard" | "list" | "user" | "clock" | "cut"
-
-/* function Icon({ name, className = "h-5 w-5" }: { name: IconName; className?: string }) {
-  const paths: Record<IconName, ReactNode> = {
-    calendar: <><path d="M8 2v4M16 2v4M3 10h18" /><path d="M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" /></>,
-    services: <><path d="M7 3h10l1 6H6l1-6Z" /><path d="M6 9h12l-1 12H7L6 9Z" /><path d="M9 13h6" /></>,
-    users: <><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" /><circle cx="9.5" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></>,
-    clients: <><path d="M20 21a8 8 0 1 0-16 0" /><circle cx="12" cy="7" r="4" /></>,
-    pets: <><circle cx="5.5" cy="10.5" r="2.5" /><circle cx="18.5" cy="10.5" r="2.5" /><circle cx="9" cy="5" r="2.5" /><circle cx="15" cy="5" r="2.5" /><path d="M7.5 18.5c0-3 2-5.5 4.5-5.5s4.5 2.5 4.5 5.5c0 1.8-1.2 2.5-2.5 2l-2-.7-2 .7c-1.3.5-2.5-.2-2.5-2Z" /></>,
-    settings: <><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.36.2.72.6 1 .6h.6a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1.4Z" /></>,
-    dashboard: <><rect x="3" y="3" width="7" height="7" rx="2" /><rect x="14" y="3" width="7" height="7" rx="2" /><rect x="3" y="14" width="7" height="7" rx="2" /><rect x="14" y="14" width="7" height="7" rx="2" /></>,
-    list: <><path d="M8 6h13M8 12h13M8 18h13" /><path d="M3 6h.01M3 12h.01M3 18h.01" /></>,
-    user: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>,
-    clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
-    cut: <><circle cx="6" cy="7" r="3" /><circle cx="6" cy="17" r="3" /><path d="M8.5 8.5 21 21" /><path d="M8.5 15.5 21 3" /></>,
-  }
-
-  return (
-    <svg className={className} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-      {paths[name]}
-    </svg>
-  )
-} */
-
-/* function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
-  return (
-    <label className="grid gap-2 text-sm font-bold text-slate-700">
-      <span>{label}</span>
-      {children}
-      {hint && <span className="text-xs font-medium text-slate-500">{hint}</span>}
-    </label>
-  )
-} */
-
-/* function Card({ icon, title, description, children }: { icon?: IconName; title: string; description?: string; children: ReactNode }) {
-  return (
-    <section className="rounded-[2rem] border border-slate-100 bg-white p-5 shadow-sm shadow-slate-200/70 sm:p-6">
-      <div className="mb-5 flex items-start gap-3">
-        {icon && <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-blue-100 text-blue-700"><Icon name={icon} className="h-6 w-6" /></span>}
-        <div>
-          <h2 className="text-2xl font-black">{title}</h2>
-          {description && <p className="mt-1 text-sm text-slate-600">{description}</p>}
-        </div>
-      </div>
-      {children}
-    </section>
-  )
-} */
-
-/* function PhotoPreview({ src, alt }: { src?: string; alt: string }) {
-  if (!src) return null
-
-  return <img className="h-20 w-20 rounded-2xl border border-slate-200 object-cover shadow-sm" src={src} alt={alt} />
-} */
-
-/* function MetricCard({ label, value, accent }: { label: string; value: number; accent: string }) {
-  return (
-    <div className="rounded-[1.5rem] border border-slate-100 bg-white p-4 shadow-sm shadow-slate-200/50">
-      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.2em] ${accent}`}>{label}</span>
-      <p className="mt-3 text-3xl font-black tracking-tight text-slate-950">{value}</p>
-    </div>
-  )
-}
- */
 async function compressImage(file: File): Promise<string> {
   const image = new Image()
   const source = URL.createObjectURL(file)
