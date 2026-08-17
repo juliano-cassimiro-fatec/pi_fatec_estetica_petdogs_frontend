@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
-import type { ChangeEvent, FormEvent } from "react"
+import type { FormEvent } from "react"
 import { useNavigate } from "react-router-dom"
-import { Avatar } from "../../components/ui/Avatar"
 import { AvailabilityCalendar } from "../../components/calendar/AvailabilityCalendar"
 import { Modal } from "../../components/ui/Modal"
 import { SiteHeader, SiteShell } from "../../components/layout/UnifiedPageFrame"
@@ -12,131 +11,11 @@ import { isUnauthorizedError, presentRequestError } from "../../services/api/err
 import { emptyProfileForm, presentProfileForm } from "../../features/dashboard/profileForm"
 import Card from "../../components/ui/Card"
 import Icon from "../../components/ui/Icon"
-import type { IconName } from "../../components/ui/Icon"
 import Field from "../../components/ui/Field"
 import PhotoPreview from "../../components/ui/PhotoPreview"
-import MetricCard from "../../components/ui/MetricCard"
-
-type Role = AuthUser["role"]
-
-type TabKey = "agenda" | "servicos" | "profissionais" | "clientes" | "pets" | "perfil"
-
-interface ScheduleFormState {
-  animal: string
-  servico: string
-  profissional: string
-  data_hora: string
-}
-
-interface ConfirmModalState {
-  title: string
-  description: string
-  confirmLabel: string
-  tone: "danger" | "warning"
-  onConfirm: () => Promise<void>
-}
-
-const inputClass = "rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
-const buttonClass = "inline-flex items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
-const secondaryButtonClass = "inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 font-bold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
-const dangerButtonClass = "inline-flex items-center justify-center rounded-2xl border border-red-200 bg-red-50 px-4 py-2.5 font-bold text-red-700 transition hover:bg-red-100 focus:outline-none focus:ring-4 focus:ring-red-100 disabled:cursor-not-allowed disabled:opacity-60"
-
-async function compressImage(file: File): Promise<string> {
-  const image = new Image()
-  const source = URL.createObjectURL(file)
-
-  try {
-    await new Promise<void>((resolve, reject) => {
-      image.onload = () => resolve()
-      image.onerror = () => reject(new Error("Imagem inválida"))
-      image.src = source
-    })
-
-    const maxSize = 900
-    const scale = Math.min(1, maxSize / Math.max(image.width, image.height))
-    const canvas = document.createElement("canvas")
-    canvas.width = Math.round(image.width * scale)
-    canvas.height = Math.round(image.height * scale)
-
-    const context = canvas.getContext("2d")
-    if (!context) throw new Error("Não foi possível processar a imagem")
-
-    context.drawImage(image, 0, 0, canvas.width, canvas.height)
-    return canvas.toDataURL("image/jpeg", 0.72)
-  } finally {
-    URL.revokeObjectURL(source)
-  }
-}
-
-async function readImage(event: ChangeEvent<HTMLInputElement>, callback: (value: string) => void, onError: (value: string) => void) {
-  const file = event.target.files?.[0]
-  if (!file) return
-
-  if (!file.type.startsWith("image/")) {
-    onError("Selecione um arquivo de imagem válido")
-    return
-  }
-
-  try {
-    callback(await compressImage(file))
-  } catch {
-    onError("Não foi possível carregar a imagem")
-  }
-}
-
-function formatCurrency(value: number) {
-  return Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-}
-
-function emptyServiceForm() {
-  return { name: "", descricao: "", duracao_min: "", preco: "" }
-}
-
-function emptyProfessionalForm() {
-  return { name: "", email: "", senha: "", telefone: "", foto: "", especialidade: "", dias_trabalho: [1, 2, 3, 4, 5] as number[], horario_inicio: "08:00", horario_fim: "18:00", almoco_inicio: "12:00", almoco_fim: "13:00" }
-}
-
-function emptyClientForm() {
-  return { name: "", email: "", senha: "", telefone: "", foto: "" }
-}
-
-function emptyPetForm() {
-  return { nome: "", raca: "", idade: "", porte: "pequeno", foto: "", cliente: "" }
-}
-
-const weekdayOptions = [
-  { label: "Dom", value: 0 },
-  { label: "Seg", value: 1 },
-  { label: "Ter", value: 2 },
-  { label: "Qua", value: 3 },
-  { label: "Qui", value: 4 },
-  { label: "Sex", value: 5 },
-  { label: "Sáb", value: 6 },
-]
-
-function getDashboardMode(role?: Role) {
-  if (role === "cliente") {
-    return {
-      label: "Cliente",
-      title: "Área do cliente",
-      description: "Agende serviços, acompanhe horários e atualize seus dados.",
-    }
-  }
-
-  if (role === "profissional") {
-    return {
-      label: "Profissional",
-      title: "Painel profissional",
-      description: "Organize agenda e acompanhe os atendimentos do dia.",
-    }
-  }
-
-  return {
-    label: "Admin",
-    title: "Painel administrativo",
-    description: "Gerencie clientes, pets, serviços, profissionais e agenda.",
-  }
-}
+import { DashboardFeedback, DashboardHeader, DashboardMetrics, DashboardNavigation, HeaderUserSummary } from "../../components/dashboard/DashboardChrome"
+import { buttonClass, dangerButtonClass, emptyClientForm, emptyPetForm, emptyProfessionalForm, emptyServiceForm, formatCurrency, getDashboardMode, inputClass, readImage, secondaryButtonClass, weekdayOptions } from "../../features/dashboard/dashboardConfig"
+import type { ConfirmModalState, DashboardTab, ScheduleFormState, TabKey } from "../../features/dashboard/dashboardConfig"
 
 export function DashboardPage() {
   const navigate = useNavigate()
@@ -173,7 +52,7 @@ export function DashboardPage() {
   const isProfessional = user?.role === "profissional"
   const isCustomer = user?.role === "cliente"
   const dashboardMode = getDashboardMode(user?.role)
-  const availableTabs: Array<{ key: TabKey; label: string; icon: IconName; show: boolean }> = [
+  const availableTabs: DashboardTab[] = [
     { key: "agenda", label: "Agenda", icon: "calendar", show: true },
     { key: "servicos", label: "Serviços", icon: "services", show: isAdmin || isCustomer },
     { key: "profissionais", label: "Profissionais", icon: "users", show: isAdmin || isCustomer },
@@ -409,14 +288,7 @@ export function DashboardPage() {
       <SiteHeader
         rightAction={
           <>
-            <div className="hidden items-center gap-3 rounded-[1.25rem] border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex">
-              <Avatar src={user?.foto} alt={user?.name ?? "Usuário"} fallbackLabel={user?.name ?? "U"} />
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">{dashboardMode.label}</p>
-                <p className="mt-1 truncate text-sm font-black text-slate-950">{user?.name ?? "Carregando"}</p>
-                <p className="text-xs font-semibold text-slate-500">{user?.role ?? "..."}</p>
-              </div>
-            </div>
+            <HeaderUserSummary user={user} label={dashboardMode.label} />
             <button className="rounded-2xl bg-orange-500 px-4 py-3 font-black text-white shadow-lg shadow-orange-200 transition hover:bg-orange-600" onClick={logout}>
               Sair
             </button>
@@ -427,55 +299,12 @@ export function DashboardPage() {
       <main>
         <div className="mx-auto max-w-7xl px-3 py-3 sm:px-4 sm:py-4 lg:px-6 lg:py-5">
           <div className="overflow-hidden rounded-[2.5rem] border border-white/70 bg-white/85 shadow-[0_30px_80px_-40px_rgba(15,23,42,0.25)] backdrop-blur-xl">
-            <div className="border-b border-slate-200/70 bg-white/90 px-4 py-5 sm:px-6 lg:px-8">
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                <div className="flex items-start gap-4">
-                  <div className="grid h-14 w-14 shrink-0 place-items-center rounded-[1.4rem] bg-gradient-to-br from-blue-600 via-sky-500 to-orange-400 text-white shadow-lg shadow-blue-200/60">
-                    <Icon name="cut" className="h-7 w-7" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.28em] text-blue-600">Estética PetDogs</p>
-                    <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">{dashboardMode.title}</h1>
-                    <p className="mt-1 max-w-2xl text-sm text-slate-600 sm:text-base">{dashboardMode.description}</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center xl:hidden">
-                  <div className="flex items-center gap-3 rounded-[1.25rem] border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                    <Avatar src={user?.foto} alt={user?.name ?? "Usuário"} fallbackLabel={user?.name ?? "U"} />
-                    <div>
-                      <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">{dashboardMode.label}</p>
-                      <p className="mt-1 truncate text-sm font-black text-slate-950">{user?.name ?? "Carregando"}</p>
-                      <p className="text-xs font-semibold text-slate-500">{user?.role ?? "..."}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <DashboardHeader user={user} mode={dashboardMode} />
 
             <div className="grid gap-4 px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
-              <section className="grid gap-3 md:grid-cols-3">
-                <MetricCard label="Agendas" value={schedules.length} accent="bg-blue-100 text-blue-700" />
-                <MetricCard label="Serviços" value={services.length} accent="bg-sky-100 text-sky-700" />
-                <MetricCard label="Equipe" value={professionals.length} accent="bg-emerald-100 text-emerald-700" />
-              </section>
-
-              <nav className="flex gap-2 overflow-x-auto rounded-[1.5rem] border border-slate-200 bg-slate-50 p-2">
-                {availableTabs.filter((tab) => tab.show).map((tab) => (
-                  <button
-                    className={`inline-flex min-w-max items-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold transition ${activeTab === tab.key ? "bg-blue-600 text-white shadow-sm" : "bg-transparent text-slate-600 hover:bg-white hover:text-slate-950"}`}
-                    key={tab.key}
-                    onClick={() => setActiveTab(tab.key)}
-                  >
-                    <Icon name={tab.icon} className="h-4 w-4" />
-                    {tab.label}
-                  </button>
-                ))}
-              </nav>
-
-              {message && <p className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 font-semibold text-emerald-700 shadow-sm" role="status">{message}</p>}
-              {error && <p className="rounded-2xl border border-red-200 bg-red-50 p-4 font-semibold text-red-700 shadow-sm" role="alert">{error}</p>}
-              {loading && <p className="rounded-2xl bg-white p-4 font-semibold text-slate-600 shadow-sm">Carregando dados do painel...</p>}
+              <DashboardMetrics schedules={schedules.length} services={services.length} professionals={professionals.length} />
+              <DashboardNavigation tabs={availableTabs} activeTab={activeTab} onChange={setActiveTab} />
+              <DashboardFeedback message={message} error={error} loading={loading} />
 
               {activeTab === "servicos" && (isAdmin || isCustomer) && (
                 <section className={`grid gap-6 ${isAdmin ? "xl:grid-cols-[minmax(320px,420px)_1fr]" : ""}`}>
