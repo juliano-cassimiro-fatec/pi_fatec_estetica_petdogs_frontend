@@ -21,3 +21,7 @@ npm run typecheck
 npm run lint
 npm run build
 ```
+
+## Testes end-to-end
+
+Os testes Playwright ficam em um projeto independente na pasta [`e2e`](./e2e). Consulte o README desse diretório para instalar os navegadores e executar os cenários localmente. O workflow de CI executa lint, testes unitários, typecheck, build e os testes E2E em cada pull request.
