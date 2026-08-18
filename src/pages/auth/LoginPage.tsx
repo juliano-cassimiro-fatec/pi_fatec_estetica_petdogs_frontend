@@ -6,6 +6,7 @@ import { useAuth } from "../../services/auth/useAuth"
 import { presentRequestError } from "../../services/api/errors"
 
 type Mode = "login" | "register"
+type RegisterStep = "email" | "code" | "account"
 
 interface LoginPageProps {
   mode?: Mode
@@ -13,12 +14,16 @@ interface LoginPageProps {
 
 export function LoginPage({ mode = "login" }: LoginPageProps) {
   const navigate = useNavigate()
-  const { status, signIn, register } = useAuth()
+  const { status, signIn, register, sendOtp, verifyOtp } = useAuth()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [codigo, setCodigo] = useState("")
+  const [verificationToken, setVerificationToken] = useState("")
+  const [registerStep, setRegisterStep] = useState<RegisterStep>("email")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [message, setMessage] = useState("")
 
   const titleByMode = {
     login: "Entrar na conta",
@@ -39,16 +44,47 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
     event.preventDefault()
     setLoading(true)
     setError("")
+    setMessage("")
 
     try {
       if (mode === "register") {
-        await register({ name: name.trim(), email: email.trim(), password })
+        const normalizedEmail = email.trim().toLowerCase()
+        if (registerStep === "email") {
+          const response = await sendOtp({ email: normalizedEmail })
+          setEmail(normalizedEmail)
+          setMessage(response.message)
+          setRegisterStep("code")
+          return
+        }
+        if (registerStep === "code") {
+          const response = await verifyOtp({ email: normalizedEmail, codigo: codigo.trim() })
+          setVerificationToken(response.verificationToken)
+          setMessage(response.message)
+          setRegisterStep("account")
+          return
+        }
+        await register({ name: name.trim(), email: normalizedEmail, password, verificationToken })
         navigate("/app/dashboard")
         return
       }
 
       await signIn({ email: email.trim(), password })
       navigate("/app/dashboard")
+    } catch (requestError) {
+      setError(presentRequestError(requestError))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleResendOtp() {
+    setLoading(true)
+    setError("")
+    setMessage("")
+    try {
+      const response = await sendOtp({ email })
+      setMessage(response.message)
+      setCodigo("")
     } catch (requestError) {
       setError(presentRequestError(requestError))
     } finally {
@@ -95,8 +131,18 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
             <h2 className="text-2xl font-black text-slate-950 sm:text-3xl">{titleByMode[mode]}</h2>
             <p className="mt-2 text-slate-600">{descriptionByMode[mode]}</p>
 
+            {mode === "register" && (
+              <ol className="mt-6 grid grid-cols-3 gap-2 text-center text-xs font-bold" aria-label="Etapas do cadastro">
+                {[{ step: "email", label: "E-mail" }, { step: "code", label: "Código" }, { step: "account", label: "Cadastro" }].map((item, index) => {
+                  const steps: RegisterStep[] = ["email", "code", "account"]
+                  const active = steps.indexOf(registerStep) >= index
+                  return <li className={active ? "rounded-xl bg-blue-600 px-2 py-2 text-white" : "rounded-xl bg-slate-100 px-2 py-2 text-slate-500"} key={item.step}>{index + 1}. {item.label}</li>
+                })}
+              </ol>
+            )}
+
             <div className="mt-6 grid gap-4">
-              {mode === "register" && (
+              {mode === "register" && registerStep === "account" && (
                 <label className="grid gap-2 text-sm font-semibold text-slate-700">
                   Nome
                   <input className="rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" value={name} onChange={(event) => setName(event.target.value)} required />
@@ -104,18 +150,25 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
               )}
               <label className="grid gap-2 text-sm font-semibold text-slate-700">
                 E-mail
-                <input className="rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+                <input className="rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100 disabled:text-slate-500" type="email" value={email} onChange={(event) => setEmail(event.target.value)} disabled={mode === "register" && registerStep !== "email"} required />
               </label>
-              <label className="grid gap-2 text-sm font-semibold text-slate-700">
+              {mode === "register" && registerStep === "code" && <label className="grid gap-2 text-sm font-semibold text-slate-700">
+                Código de verificação
+                <input className="rounded-2xl border border-slate-200 px-4 py-3 text-center font-mono text-xl tracking-[0.35em] outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" inputMode="numeric" maxLength={6} pattern="[0-9]{6}" autoComplete="one-time-code" value={codigo} onChange={(event) => setCodigo(event.target.value.replace(/\D/g, ""))} required />
+                <span className="font-normal text-slate-500">Digite o código de 6 dígitos enviado para seu e-mail.</span>
+              </label>}
+              {(mode === "login" || registerStep === "account") && <label className="grid gap-2 text-sm font-semibold text-slate-700">
                 Senha
                 <input className="rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" minLength={6} type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
-              </label>
+              </label>}
             </div>
 
             {error && <p className="mt-4 rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-700" role="alert">{error}</p>}
+            {message && <p className="mt-4 rounded-2xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-700" role="status">{message}</p>}
             <button className="mt-6 w-full rounded-2xl bg-blue-600 px-5 py-3 font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60" disabled={loading} type="submit">
-              {loading ? "Aguarde..." : submitLabelByMode[mode]}
+              {loading ? "Aguarde..." : mode === "register" && registerStep === "email" ? "Enviar código" : mode === "register" && registerStep === "code" ? "Validar código" : submitLabelByMode[mode]}
             </button>
+            {mode === "register" && registerStep === "code" && <button className="mt-3 w-full text-sm font-bold text-blue-700 disabled:opacity-60" disabled={loading} onClick={handleResendOtp} type="button">Reenviar código</button>}
 
             <div className="mt-5 flex flex-wrap gap-3 text-sm font-semibold text-blue-700">
               <Link to="/login">Entrar</Link>
