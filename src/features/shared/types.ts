@@ -22,6 +22,24 @@ export interface RegisterCustomerData {
   name: string
   email: string
   password: string
+  verificationToken: string
+}
+
+export interface SendOtpData {
+  email: string
+}
+
+export interface VerifyOtpData extends SendOtpData {
+  codigo: string
+}
+
+export interface OtpMessageResponse {
+  message: string
+}
+
+export interface VerifyOtpResponse extends OtpMessageResponse {
+  verified: true
+  verificationToken: string
 }
 
 export interface Customer {

@@ -1,6 +1,6 @@
 import type { AuthRepository } from "./types"
 import type { SessionStorage } from "../session/browserSession"
-import type { AuthSession, LoginCredentials, RegisterCustomerData } from "../../features/shared/types"
+import type { AuthSession, LoginCredentials, RegisterCustomerData, SendOtpData, VerifyOtpData } from "../../features/shared/types"
 
 export function createAuthUseCases(repository: AuthRepository, storage: SessionStorage) {
   return {
@@ -22,6 +22,14 @@ export function createAuthUseCases(repository: AuthRepository, storage: SessionS
       const session = await repository.registerCustomer(data)
       storage.saveSession(session)
       return session
+    },
+
+    sendOtp(data: SendOtpData) {
+      return repository.sendOtp(data)
+    },
+
+    verifyOtp(data: VerifyOtpData) {
+      return repository.verifyOtp(data)
     },
 
     signOut(): void {
