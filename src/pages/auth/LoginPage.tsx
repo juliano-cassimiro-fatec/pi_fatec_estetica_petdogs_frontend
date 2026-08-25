@@ -118,7 +118,6 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
             </button>
 
             <div className="mt-5 flex flex-wrap gap-3 text-sm font-semibold text-blue-700">
-              <Link to="/login">Entrar</Link>
               <Link to="/register">Cadastrar</Link>
             </div>
           </div>
