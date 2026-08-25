@@ -1,15 +1,15 @@
 import type { AvailabilityGateway } from "./types"
 import type { DayAvailability, SlotAvailability } from "../../features/shared/types"
-import apiClient from "../api/client"
+import apiClient, { authenticatedRequestConfig } from "../api/client"
 
 export const axiosAvailabilityGateway: AvailabilityGateway = {
   async getMonthAvailability(params) {
-    const response = await apiClient.get<{ month: string; days: DayAvailability[] }>("/agendamentos/disponibilidade/mes", { params })
+    const response = await apiClient.get<{ month: string; days: DayAvailability[] }>("/agendamentos/disponibilidade/mes", authenticatedRequestConfig({ params }))
     return response.data.days
   },
 
   async getDayAvailability(params) {
-    const response = await apiClient.get<{ slots: SlotAvailability[]; available: boolean }>("/agendamentos/disponibilidade", { params })
+    const response = await apiClient.get<{ slots: SlotAvailability[]; available: boolean }>("/agendamentos/disponibilidade", authenticatedRequestConfig({ params }))
     return response.data
   },
 }

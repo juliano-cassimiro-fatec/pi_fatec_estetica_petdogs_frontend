@@ -1,102 +1,104 @@
 import type { DashboardRepository } from "./types"
 import type { AuthUser, Customer, Pet, Professional, Schedule, Service } from "../../features/shared/types"
-import apiClient from "../api/client"
+import apiClient, { authenticatedRequestConfig } from "../api/client"
+
+const withAuthentication = authenticatedRequestConfig
 
 export const axiosDashboardRepository: DashboardRepository = {
   async getMe() {
-    const response = await apiClient.get<{ user: AuthUser }>("/auth/me")
+    const response = await apiClient.get<{ user: AuthUser }>("/auth/me", withAuthentication())
     return response.data.user
   },
 
   async listPets() {
-    const response = await apiClient.get<Pet[]>("/pets")
+    const response = await apiClient.get<Pet[]>("/pets", withAuthentication())
     return response.data
   },
 
   async listServices() {
-    const response = await apiClient.get<Service[]>("/servicos")
+    const response = await apiClient.get<Service[]>("/servicos", withAuthentication())
     return response.data
   },
 
   async listProfessionals() {
-    const response = await apiClient.get<Professional[]>("/profissionais")
+    const response = await apiClient.get<Professional[]>("/profissionais", withAuthentication())
     return response.data
   },
 
   async listCustomers() {
-    const response = await apiClient.get<Customer[]>("/clientes")
+    const response = await apiClient.get<Customer[]>("/clientes", withAuthentication())
     return response.data
   },
 
   async listSchedules() {
-    const response = await apiClient.get<Schedule[]>("/agendamentos")
+    const response = await apiClient.get<Schedule[]>("/agendamentos", withAuthentication())
     return response.data
   },
 
   async getCustomerProfile() {
-    const response = await apiClient.get<Customer>("/clientes/me")
+    const response = await apiClient.get<Customer>("/clientes/me", withAuthentication())
     return response.data
   },
 
   async savePet(payload, id) {
     if (id) {
-      await apiClient.put(`/pets/${id}`, payload)
+      await apiClient.put(`/pets/${id}`, payload, withAuthentication())
       return
     }
 
-    await apiClient.post("/pets", payload)
+    await apiClient.post("/pets", payload, withAuthentication())
   },
 
   async saveService(payload, id) {
     if (id) {
-      await apiClient.put(`/servicos/${id}`, payload)
+      await apiClient.put(`/servicos/${id}`, payload, withAuthentication())
       return
     }
 
-    await apiClient.post("/servicos", payload)
+    await apiClient.post("/servicos", payload, withAuthentication())
   },
 
   async saveProfessional(payload, id) {
     if (id) {
-      await apiClient.put(`/profissionais/${id}`, payload)
+      await apiClient.put(`/profissionais/${id}`, payload, withAuthentication())
       return
     }
 
-    await apiClient.post("/profissionais", payload)
+    await apiClient.post("/profissionais", payload, withAuthentication())
   },
 
   async saveCustomer(payload, id) {
     if (id) {
-      await apiClient.put(`/clientes/${id}`, payload)
+      await apiClient.put(`/clientes/${id}`, payload, withAuthentication())
       return
     }
 
-    await apiClient.post("/clientes", payload)
+    await apiClient.post("/clientes", payload, withAuthentication())
   },
 
   async saveSchedule(payload, id) {
     if (id) {
-      await apiClient.put(`/agendamentos/${id}`, payload)
+      await apiClient.put(`/agendamentos/${id}`, payload, withAuthentication())
       return
     }
 
-    await apiClient.post("/agendamentos", payload)
+    await apiClient.post("/agendamentos", payload, withAuthentication())
   },
 
   async updateCustomerProfile(payload) {
-    await apiClient.put("/clientes/me", payload)
+    await apiClient.put("/clientes/me", payload, withAuthentication())
   },
 
   async updateProfessionalProfile(payload) {
-    await apiClient.put("/profissionais/me", payload)
+    await apiClient.put("/profissionais/me", payload, withAuthentication())
   },
 
   async remove(path) {
-    await apiClient.delete(path)
+    await apiClient.delete(path, withAuthentication())
   },
 
   async cancelSchedule(id) {
-    await apiClient.patch(`/agendamentos/${id}/cancel`)
+    await apiClient.patch(`/agendamentos/${id}/cancel`, undefined, withAuthentication())
   },
 }
 

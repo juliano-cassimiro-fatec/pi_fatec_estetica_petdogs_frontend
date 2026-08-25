@@ -35,11 +35,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }).catch(signOut)
   }, [hasToken, signOut])
 
-  useEffect(() => {
-    window.addEventListener("petdogs:session-expired", signOut)
-    return () => window.removeEventListener("petdogs:session-expired", signOut)
-  }, [signOut])
-
   async function signIn(credentials: LoginCredentials) {
     const session = await authService.signIn(credentials)
     setUser(session.user)
