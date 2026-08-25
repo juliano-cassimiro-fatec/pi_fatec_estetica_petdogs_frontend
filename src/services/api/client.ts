@@ -1,5 +1,4 @@
 import axios from "axios"
-import type { AxiosRequestConfig } from "axios"
 import { browserSessionStorage } from "../session/browserSession"
 
 const apiClient = axios.create({
@@ -7,18 +6,26 @@ const apiClient = axios.create({
   timeout: 15_000,
 })
 
-export function authenticatedRequestConfig(config: AxiosRequestConfig = {}): AxiosRequestConfig {
+apiClient.interceptors.request.use((config) => {
   const token = browserSessionStorage.getToken()
 
-  if (!token) return config
-
-  return {
-    ...config,
-    headers: {
-      ...config.headers,
-      Authorization: `Bearer ${token}`,
-    },
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
   }
-}
+
+  return config
+})
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401) {
+      browserSessionStorage.clearSession()
+      window.dispatchEvent(new Event("petdogs:session-expired"))
+    }
+
+    return Promise.reject(error)
+  },
+)
 
 export default apiClient

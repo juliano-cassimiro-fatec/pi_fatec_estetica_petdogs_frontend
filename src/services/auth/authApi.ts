@@ -1,6 +1,6 @@
 import type { AuthRepository } from "./types"
 import type { AuthSession, LoginCredentials, OtpMessageResponse, RegisterCustomerData, SendOtpData, VerifyOtpData, VerifyOtpResponse } from "../../features/shared/types"
-import apiClient, { authenticatedRequestConfig } from "../api/client"
+import apiClient from "../api/client"
 
 interface MeResponse {
   user: AuthSession["user"]
@@ -28,7 +28,7 @@ export const axiosAuthRepository: AuthRepository = {
   },
 
   async me() {
-    const response = await apiClient.get<MeResponse>("/auth/me", authenticatedRequestConfig())
+    const response = await apiClient.get<MeResponse>("/auth/me")
     return response.data.user
   },
 }
