@@ -17,6 +17,7 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
@@ -42,6 +43,13 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
 
     try {
       if (mode === "register") {
+        
+        if (password !== confirmPassword) {
+          setError("As senhas não coincidem.")
+          setLoading(false)
+          return
+        }
+
         await register({ name: name.trim(), email: email.trim(), password })
         navigate("/app/dashboard")
         return
@@ -110,6 +118,10 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
                 Senha
                 <input className="rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" minLength={6} type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
               </label>
+              <label className="grid gap-2 text-sm font-semibold text-slate-700">
+                Confirmar Senha
+                <input className="rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" minLength={6} type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required />
+              </label>
             </div>
 
             {error && <p className="mt-4 rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-700" role="alert">{error}</p>}
@@ -117,8 +129,11 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
               {loading ? "Aguarde..." : submitLabelByMode[mode]}
             </button>
 
+            
             <div className="mt-5 flex flex-wrap gap-3 text-sm font-semibold text-blue-700">
-              <Link to="/register">Cadastrar</Link>
+              <Link to={mode === "login" ? "/register" : "/login"}>
+                {mode === "login" ? "Cadastrar" : "Entrar"}
+              </Link>
             </div>
           </div>
         </form>
