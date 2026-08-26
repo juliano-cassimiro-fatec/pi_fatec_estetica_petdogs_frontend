@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from "react"
 import type { ReactNode } from "react"
-import type { AuthUser, LoginCredentials, RegisterCustomerData, SendOtpData, VerifyOtpData } from "../../features/shared/types"
+import type {
+  AuthUser,
+  LoginCredentials,
+  RegisterCustomerData,
+} from "../../features/shared/types"
 import { authService } from "./authService"
 import { AuthContext } from "./authContext"
 import type { AuthStatus } from "./authContext"
@@ -8,7 +12,9 @@ import type { AuthStatus } from "./authContext"
 export function AuthProvider({ children }: { children: ReactNode }) {
   const hasToken = authService.hasStoredToken()
   const [user, setUser] = useState<AuthUser | null>(null)
-  const [status, setStatus] = useState<AuthStatus>(hasToken ? "checking" : "unauthenticated")
+  const [status, setStatus] = useState<AuthStatus>(
+    hasToken ? "checking" : "unauthenticated",
+  )
 
   const signOut = useCallback(() => {
     authService.signOut()
@@ -29,10 +35,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!hasToken) return
-    void authService.getCurrentUser().then((currentUser) => {
-      setUser(currentUser)
-      setStatus("authenticated")
-    }).catch(signOut)
+    void authService
+      .getCurrentUser()
+      .then((currentUser) => {
+        setUser(currentUser)
+        setStatus("authenticated")
+      })
+      .catch(signOut)
   }, [hasToken, signOut])
 
   useEffect(() => {
@@ -51,15 +60,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(session.user)
     setStatus("authenticated")
   }
-
-
-  function sendOtp(data: SendOtpData) {
-    return authService.sendOtp(data)
-  }
-
-  function verifyOtp(data: VerifyOtpData) {
-    return authService.verifyOtp(data)
-  }
-
-  return <AuthContext.Provider value={{ user, status, signIn, register, sendOtp, verifyOtp, signOut, refreshUser }}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider
+      value={{ user, status, signIn, register, signOut, refreshUser }}
+    >
+      {children}
+    </AuthContext.Provider>
+  )
 }
