@@ -4,6 +4,7 @@ import { Link, Navigate, useNavigate } from "react-router-dom"
 import { SiteHeader, SiteShell } from "../../components/layout/UnifiedPageFrame"
 import { useAuth } from "../../services/auth/useAuth"
 import { presentRequestError } from "../../services/api/errors"
+import PasswordInput from "../../components/ui/PasswordInput"
 
 type Mode = "login" | "register"
 
@@ -168,10 +169,9 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
 
                 <label className="grid gap-2 text-sm font-semibold text-slate-700">
                   Senha
-                  <input
+                  <PasswordInput
                     className="rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                     minLength={6}
-                    type="password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     required
@@ -181,10 +181,9 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
                 {mode === "register" && (
                   <label className="grid gap-2 text-sm font-semibold text-slate-700">
                     Confirmar Senha
-                    <input
+                    <PasswordInput
                       className="rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                       minLength={6}
-                      type="password"
                       value={confirmPassword}
                       onChange={(event) =>
                         setConfirmPassword(event.target.value)

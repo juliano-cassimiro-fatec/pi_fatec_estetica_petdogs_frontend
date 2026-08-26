@@ -8,6 +8,18 @@ const customer = {
 }
 
 test.describe("autenticação", () => {
+  test("permite mostrar e ocultar a senha", async ({ page }) => {
+    await page.goto("/login")
+    const password = page.getByLabel("Senha")
+
+    await password.fill("senha123")
+    await expect(password).toHaveAttribute("type", "password")
+    await page.getByRole("button", { name: "Mostrar senha" }).click()
+    await expect(password).toHaveAttribute("type", "text")
+    await page.getByRole("button", { name: "Ocultar senha" }).click()
+    await expect(password).toHaveAttribute("type", "password")
+  })
+
   test("cria a conta com o cadastro simples", async ({ page }) => {
     await page.route("**/api/v1/auth/register", async (route) => {
       expect(route.request().postDataJSON()).toEqual({

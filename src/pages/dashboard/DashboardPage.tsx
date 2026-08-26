@@ -12,6 +12,7 @@ import { emptyProfileForm, presentProfileForm } from "../../features/dashboard/p
 import Card from "../../components/ui/Card"
 import Icon from "../../components/ui/Icon"
 import Field from "../../components/ui/Field"
+import PasswordInput from "../../components/ui/PasswordInput"
 import PhotoPreview from "../../components/ui/PhotoPreview"
 import { DashboardFeedback, DashboardHeader, DashboardMetrics, DashboardNavigation, HeaderUserSummary } from "../../components/dashboard/DashboardChrome"
 import { buttonClass, dangerButtonClass, emptyClientForm, emptyPetForm, emptyProfessionalForm, emptyServiceForm, formatCurrency, getDashboardMode, inputClass, readImage, secondaryButtonClass, validateWorkSchedule, weekdayOptions } from "../../features/dashboard/dashboardConfig"
@@ -364,7 +365,7 @@ export function DashboardPage() {
                       <form className="grid gap-4" onSubmit={handleProfessionalSubmit}>
                         <Field label="Nome *"><input className={inputClass} value={professionalForm.name} onChange={(event) => setProfessionalForm({ ...professionalForm, name: event.target.value })} required /></Field>
                         <Field label="E-mail *"><input className={inputClass} type="email" value={professionalForm.email} onChange={(event) => setProfessionalForm({ ...professionalForm, email: event.target.value })} required /></Field>
-                        <Field label={editingProfessionalId ? "Nova senha" : "Senha inicial *"} hint={editingProfessionalId ? "Deixe em branco para manter a senha atual." : "Mínimo de 6 caracteres."}><input className={inputClass} minLength={6} type="password" value={professionalForm.senha} onChange={(event) => setProfessionalForm({ ...professionalForm, senha: event.target.value })} required={!editingProfessionalId} /></Field>
+                        <Field label={editingProfessionalId ? "Nova senha" : "Senha inicial *"} hint={editingProfessionalId ? "Deixe em branco para manter a senha atual." : "Mínimo de 6 caracteres."}><PasswordInput className={inputClass} minLength={6} value={professionalForm.senha} onChange={(event) => setProfessionalForm({ ...professionalForm, senha: event.target.value })} required={!editingProfessionalId} /></Field>
                         <Field label="Telefone"><input className={inputClass} type="tel" value={professionalForm.telefone} onChange={(event) => setProfessionalForm({ ...professionalForm, telefone: event.target.value })} /></Field>
                         <Field label="Especialidade *"><input className={inputClass} value={professionalForm.especialidade} onChange={(event) => setProfessionalForm({ ...professionalForm, especialidade: event.target.value })} required /></Field>
                         <div className="grid gap-4">
@@ -432,7 +433,7 @@ export function DashboardPage() {
                     <form className="grid gap-4" onSubmit={handleClientSubmit}>
                       <Field label="Nome *"><input className={inputClass} value={clientForm.name} onChange={(event) => setClientForm({ ...clientForm, name: event.target.value })} required /></Field>
                       <Field label="E-mail *"><input className={inputClass} type="email" value={clientForm.email} onChange={(event) => setClientForm({ ...clientForm, email: event.target.value })} required /></Field>
-                      <Field label={editingClientId ? "Nova senha" : "Senha inicial *"} hint={editingClientId ? "Opcional na edição." : "Mínimo de 6 caracteres."}><input className={inputClass} minLength={6} type="password" value={clientForm.senha} onChange={(event) => setClientForm({ ...clientForm, senha: event.target.value })} required={!editingClientId} /></Field>
+                      <Field label={editingClientId ? "Nova senha" : "Senha inicial *"} hint={editingClientId ? "Opcional na edição." : "Mínimo de 6 caracteres."}><PasswordInput className={inputClass} minLength={6} value={clientForm.senha} onChange={(event) => setClientForm({ ...clientForm, senha: event.target.value })} required={!editingClientId} /></Field>
                       <Field label="Telefone"><input className={inputClass} type="tel" value={clientForm.telefone} onChange={(event) => setClientForm({ ...clientForm, telefone: event.target.value })} /></Field>
                       <Field label="Foto"><input className={inputClass} type="file" accept="image/*" onChange={(event) => void readImage(event, (foto) => setClientForm({ ...clientForm, foto }), setError)} /></Field>
                       <PhotoPreview src={clientForm.foto} alt="Prévia do cliente" />
@@ -635,7 +636,7 @@ export function DashboardPage() {
                 <form className="grid gap-4" onSubmit={handleProfessionalSubmit}>
                   <Field label="Nome *"><input className={inputClass} value={professionalForm.name} onChange={(event) => setProfessionalForm({ ...professionalForm, name: event.target.value })} required /></Field>
                   <Field label="E-mail *"><input className={inputClass} type="email" value={professionalForm.email} onChange={(event) => setProfessionalForm({ ...professionalForm, email: event.target.value })} required /></Field>
-                  <Field label={editingProfessionalId ? "Nova senha" : "Senha inicial *"} hint={editingProfessionalId ? "Deixe em branco para manter a senha atual." : "Mínimo de 6 caracteres."}><input className={inputClass} minLength={6} type="password" value={professionalForm.senha} onChange={(event) => setProfessionalForm({ ...professionalForm, senha: event.target.value })} required={!editingProfessionalId} /></Field>
+                  <Field label={editingProfessionalId ? "Nova senha" : "Senha inicial *"} hint={editingProfessionalId ? "Deixe em branco para manter a senha atual." : "Mínimo de 6 caracteres."}><PasswordInput className={inputClass} minLength={6} value={professionalForm.senha} onChange={(event) => setProfessionalForm({ ...professionalForm, senha: event.target.value })} required={!editingProfessionalId} /></Field>
                   <Field label="Telefone"><input className={inputClass} type="tel" value={professionalForm.telefone} onChange={(event) => setProfessionalForm({ ...professionalForm, telefone: event.target.value })} /></Field>
                   <Field label="Especialidade *"><input className={inputClass} value={professionalForm.especialidade} onChange={(event) => setProfessionalForm({ ...professionalForm, especialidade: event.target.value })} required /></Field>
                   <div className="grid gap-4">
@@ -668,7 +669,7 @@ export function DashboardPage() {
                 <form className="grid gap-4" onSubmit={handleClientSubmit}>
                   <Field label="Nome *"><input className={inputClass} value={clientForm.name} onChange={(event) => setClientForm({ ...clientForm, name: event.target.value })} required /></Field>
                   <Field label="E-mail *"><input className={inputClass} type="email" value={clientForm.email} onChange={(event) => setClientForm({ ...clientForm, email: event.target.value })} required /></Field>
-                  <Field label={editingClientId ? "Nova senha" : "Senha inicial *"} hint={editingClientId ? "Opcional na edição." : "Mínimo de 6 caracteres."}><input className={inputClass} minLength={6} type="password" value={clientForm.senha} onChange={(event) => setClientForm({ ...clientForm, senha: event.target.value })} required={!editingClientId} /></Field>
+                  <Field label={editingClientId ? "Nova senha" : "Senha inicial *"} hint={editingClientId ? "Opcional na edição." : "Mínimo de 6 caracteres."}><PasswordInput className={inputClass} minLength={6} value={clientForm.senha} onChange={(event) => setClientForm({ ...clientForm, senha: event.target.value })} required={!editingClientId} /></Field>
                   <Field label="Telefone"><input className={inputClass} type="tel" value={clientForm.telefone} onChange={(event) => setClientForm({ ...clientForm, telefone: event.target.value })} /></Field>
                   <Field label="Foto"><input className={inputClass} type="file" accept="image/*" onChange={(event) => void readImage(event, (foto) => setClientForm({ ...clientForm, foto }), setError)} /></Field>
                   <PhotoPreview src={clientForm.foto} alt="Prévia do cliente" />
