@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { availabilityService } from "../../services/availability/availabilityService"
 import type { DayAvailability, Professional, Service, SlotAvailability } from "../../features/shared/types"
 
@@ -57,6 +57,10 @@ function buildMonthDays(anchor: Date) {
 }
 
 export function AvailabilityCalendar({ professionals, services, value, onChange, disabled = false }: CalendarProps) {
+  const calendarId = useId()
+  const slotsId = useId()
+  const slotsHeadingRef = useRef<HTMLHeadingElement>(null)
+  const shouldNavigateToSlots = useRef(false)
   const [monthAnchor, setMonthAnchor] = useState(() => {
     if (value.data_hora) {
       return new Date(value.data_hora)
@@ -172,10 +176,23 @@ export function AvailabilityCalendar({ professionals, services, value, onChange,
     }
   }, [selectedDate, value.profissional, value.servico])
 
+  useEffect(() => {
+    if (!selectedDate || !shouldNavigateToSlots.current) return
+
+    shouldNavigateToSlots.current = false
+    const heading = slotsHeadingRef.current
+    if (!heading) return
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    heading.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" })
+    heading.focus({ preventScroll: true })
+  }, [selectedDate])
+
   const cells = buildMonthDays(monthAnchor)
 
   function selectDay(date: Date) {
     const dateKey = toDateKey(date)
+    shouldNavigateToSlots.current = true
     setSelectedDate(dateKey)
     setSlots([])
     onChange({
@@ -245,7 +262,7 @@ export function AvailabilityCalendar({ professionals, services, value, onChange,
 
       {hasPrerequisites && (
         <>
-          <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-slate-50 shadow-sm" aria-label={`Calendário de ${monthLabel}`}>
+          <section id={calendarId} className="scroll-mt-6 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-slate-50 shadow-sm" aria-label={`Calendário de ${monthLabel}`}>
             <div className="flex flex-col gap-4 border-b border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
               <div className="min-w-0">
                 <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-600">Calendário personalizado</p>
@@ -281,6 +298,7 @@ export function AvailabilityCalendar({ professionals, services, value, onChange,
                     type="button"
                     onClick={() => selectDay(cell)}
                     disabled={disabled || loadingMonth || !workingDay || !isAvailable}
+                    aria-controls={slotsId}
                     aria-label={`${dateKey}: ${isAvailable ? `${dayInfo?.slotsCount ?? 0} horários disponíveis` : workingDay ? "sem horários disponíveis" : "folga"}`}
                     aria-pressed={isSelected}
                     className={`relative flex aspect-square min-h-11 flex-col items-center justify-center rounded-xl border p-1 text-center transition focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 sm:aspect-auto sm:min-h-20 sm:items-start sm:justify-between sm:rounded-2xl sm:p-2.5 sm:text-left ${isSelected ? "border-blue-700 bg-blue-600 text-white shadow-md ring-2 ring-blue-200" : isAvailable ? "border-emerald-200 bg-white text-slate-800 shadow-sm hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50" : workingDay ? "cursor-not-allowed border-slate-200 bg-white text-slate-400" : "cursor-not-allowed border-dashed border-slate-200 bg-slate-100/80 text-slate-400"}`}
@@ -304,11 +322,11 @@ export function AvailabilityCalendar({ professionals, services, value, onChange,
             </div>
           </section>
 
-          <div className="rounded-[1.75rem] border border-slate-200 bg-white p-4">
+          <section id={slotsId} className="scroll-mt-6 rounded-[1.75rem] border border-slate-200 bg-white p-4" aria-labelledby={`${slotsId}-heading`}>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-600">Horários disponíveis</p>
-                <h3 className="mt-1 text-lg font-black text-slate-950">
+                <h3 ref={slotsHeadingRef} id={`${slotsId}-heading`} className="scroll-mt-6 mt-1 text-lg font-black text-slate-950 outline-none" tabIndex={-1}>
                   <span className="capitalize">{selectedDateLabel}</span>
                 </h3>
                 <p className="mt-1 text-sm text-slate-600" aria-live="polite">
@@ -341,7 +359,10 @@ export function AvailabilityCalendar({ professionals, services, value, onChange,
                 Nenhum horário livre para esta data. Tente outro dia ou outro profissional.
               </p>
             )}
-          </div>
+            <a className="mt-4 inline-flex text-sm font-bold text-blue-700 hover:text-blue-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" href={`#${calendarId}`}>
+              Voltar ao calendário
+            </a>
+          </section>
         </>
       )}
     </div>
