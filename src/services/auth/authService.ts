@@ -1,8 +1,15 @@
 import type { AuthRepository } from "./types"
 import type { SessionStorage } from "../session/browserSession"
-import type { AuthSession, LoginCredentials, RegisterCustomerData, SendOtpData, VerifyOtpData } from "../../features/shared/types"
+import type {
+  AuthSession,
+  LoginCredentials,
+  RegisterCustomerData,
+} from "../../features/shared/types"
 
-export function createAuthUseCases(repository: AuthRepository, storage: SessionStorage) {
+export function createAuthUseCases(
+  repository: AuthRepository,
+  storage: SessionStorage,
+) {
   return {
     hasStoredToken(): boolean {
       return Boolean(storage.getToken())
@@ -24,14 +31,6 @@ export function createAuthUseCases(repository: AuthRepository, storage: SessionS
       return session
     },
 
-    sendOtp(data: SendOtpData) {
-      return repository.sendOtp(data)
-    },
-
-    verifyOtp(data: VerifyOtpData) {
-      return repository.verifyOtp(data)
-    },
-
     signOut(): void {
       storage.clearSession()
     },
@@ -41,4 +40,7 @@ export function createAuthUseCases(repository: AuthRepository, storage: SessionS
 import { axiosAuthRepository } from "./authApi"
 import { browserSessionStorage } from "../session/browserSession"
 
-export const authService = createAuthUseCases(axiosAuthRepository, browserSessionStorage)
+export const authService = createAuthUseCases(
+  axiosAuthRepository,
+  browserSessionStorage,
+)
