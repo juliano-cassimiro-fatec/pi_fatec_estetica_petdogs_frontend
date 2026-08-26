@@ -79,6 +79,21 @@ export function AvailabilityCalendar({ professionals, services, value, onChange,
     return new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(monthAnchor)
   }, [monthAnchor])
 
+  const monthAvailability = useMemo(
+    () => new Map(monthDays.map((day) => [day.date, day])),
+    [monthDays],
+  )
+
+  const selectedDateLabel = useMemo(() => {
+    if (!selectedDate) return "Selecione um dia"
+    const [year, month, day] = selectedDate.split("-").map(Number)
+    return new Intl.DateTimeFormat("pt-BR", {
+      weekday: "long",
+      day: "2-digit",
+      month: "long",
+    }).format(new Date(year, month - 1, day))
+  }, [selectedDate])
+
   useEffect(() => {
     if (!value.profissional || !value.servico) {
       const timeout = window.setTimeout(() => {
@@ -230,31 +245,32 @@ export function AvailabilityCalendar({ professionals, services, value, onChange,
 
       {hasPrerequisites && (
         <>
-          <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
+          <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-slate-50 shadow-sm" aria-label={`Calendário de ${monthLabel}`}>
+            <div className="flex flex-col gap-4 border-b border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+              <div className="min-w-0">
                 <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-600">Calendário personalizado</p>
-                <h3 className="mt-1 text-xl font-black text-slate-950">{monthLabel}</h3>
+                <h3 className="mt-1 text-xl font-black capitalize text-slate-950">{monthLabel}</h3>
                 <p className="mt-1 text-sm text-slate-600">{calendarMessage}</p>
               </div>
-              <div className="flex gap-2">
-                <button className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700" type="button" onClick={() => setMonthAnchor((current) => addMonths(current, -1))} disabled={disabled || loadingMonth}>Mês anterior</button>
-                <button className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700" type="button" onClick={() => setMonthAnchor((current) => addMonths(current, 1))} disabled={disabled || loadingMonth}>Próximo mês</button>
+              <div className="grid grid-cols-2 gap-2 sm:flex" aria-label="Navegação entre meses">
+                <button className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={() => setMonthAnchor((current) => addMonths(current, -1))} disabled={disabled || loadingMonth}><span aria-hidden="true">←</span><span>Anterior</span></button>
+                <button className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={() => setMonthAnchor((current) => addMonths(current, 1))} disabled={disabled || loadingMonth}><span>Próximo</span><span aria-hidden="true">→</span></button>
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-7 gap-2 text-center text-xs font-black uppercase tracking-[0.18em] text-slate-500">
-              {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((label) => <div key={label}>{label}</div>)}
-            </div>
+            <div className="p-2.5 sm:p-4">
+              <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-black uppercase tracking-wider text-slate-500 sm:gap-2 sm:text-xs sm:tracking-[0.14em]">
+                {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((label) => <div className="py-1.5" key={label} aria-label={label}>{label.slice(0, 1)}<span className="hidden sm:inline">{label.slice(1)}</span></div>)}
+              </div>
 
-            <div className="mt-2 grid grid-cols-7 gap-2">
-              {cells.map((cell, index) => {
+              <div className="mt-1 grid grid-cols-7 gap-1 sm:mt-2 sm:gap-2">
+                {cells.map((cell, index) => {
                 if (!cell) {
-                  return <div key={`empty-${index}`} className="rounded-2xl bg-transparent p-3" />
+                  return <div key={`empty-${index}`} className="aspect-square min-h-11 sm:aspect-auto sm:min-h-20" aria-hidden="true" />
                 }
 
                 const dateKey = toDateKey(cell)
-                const dayInfo = monthDays.find((item) => item.date === dateKey)
+                const dayInfo = monthAvailability.get(dateKey)
                 const isSelected = selectedDate === dateKey
                 const isAvailable = Boolean(dayInfo?.available)
                 const workingDay = dayInfo?.workingDay ?? false
@@ -267,24 +283,33 @@ export function AvailabilityCalendar({ professionals, services, value, onChange,
                     disabled={disabled || loadingMonth || !workingDay || !isAvailable}
                     aria-label={`${dateKey}: ${isAvailable ? `${dayInfo?.slotsCount ?? 0} horários disponíveis` : workingDay ? "sem horários disponíveis" : "folga"}`}
                     aria-pressed={isSelected}
-                    className={`rounded-2xl border p-3 text-left transition ${isSelected ? "border-blue-500 bg-blue-600 text-white shadow-sm" : workingDay ? "border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50" : "border-dashed border-slate-200 bg-slate-100 text-slate-400"}`}
+                    className={`relative flex aspect-square min-h-11 flex-col items-center justify-center rounded-xl border p-1 text-center transition focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 sm:aspect-auto sm:min-h-20 sm:items-start sm:justify-between sm:rounded-2xl sm:p-2.5 sm:text-left ${isSelected ? "border-blue-700 bg-blue-600 text-white shadow-md ring-2 ring-blue-200" : isAvailable ? "border-emerald-200 bg-white text-slate-800 shadow-sm hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50" : workingDay ? "cursor-not-allowed border-slate-200 bg-white text-slate-400" : "cursor-not-allowed border-dashed border-slate-200 bg-slate-100/80 text-slate-400"}`}
                   >
-                    <span className="block text-sm font-black">{cell.getDate()}</span>
-                    <span className="mt-1 block text-[11px] font-semibold uppercase tracking-[0.18em]">
+                    <span className="text-sm font-black sm:text-base">{cell.getDate()}</span>
+                    {isAvailable && !isSelected && <span className="absolute bottom-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500 sm:hidden" aria-hidden="true" />}
+                    {isSelected && <span className="absolute right-1.5 top-1 text-[10px] font-black sm:right-2 sm:top-2" aria-hidden="true">✓</span>}
+                    <span className="hidden text-[10px] font-bold uppercase leading-tight tracking-wide sm:block">
                       {workingDay ? (isAvailable ? `${dayInfo?.slotsCount ?? 0} vagas` : "Sem vagas") : "Folga"}
                     </span>
                   </button>
                 )
-              })}
+                })}
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-200 pt-3 text-xs font-semibold text-slate-600" aria-label="Legenda do calendário">
+                <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />Com horários</span>
+                <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-slate-300" />Indisponível</span>
+                <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-blue-600" />Selecionado</span>
+              </div>
             </div>
-          </div>
+          </section>
 
           <div className="rounded-[1.75rem] border border-slate-200 bg-white p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
                 <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-600">Horários disponíveis</p>
                 <h3 className="mt-1 text-lg font-black text-slate-950">
-                  {selectedDate || "Selecione um dia"}
+                  <span className="capitalize">{selectedDateLabel}</span>
                 </h3>
                 <p className="mt-1 text-sm text-slate-600" aria-live="polite">
                   {selectedProfessional ? `${selectedProfessional.name}${selectedProfessional.especialidade ? ` - ${selectedProfessional.especialidade}` : ""}` : "Escolha um profissional"}
@@ -294,17 +319,19 @@ export function AvailabilityCalendar({ professionals, services, value, onChange,
               {loadingDay && <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">Carregando...</span>}
             </div>
 
-            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
               {slots.filter((slot) => slot.available).map((slot) => (
                 <button
                   key={slot.datetime}
                   type="button"
                   onClick={() => selectSlot(slot)}
                   disabled={disabled}
-                  className={`rounded-2xl border px-4 py-3 text-left transition ${value.data_hora === slot.datetime.slice(0, 16) ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-200 hover:bg-blue-50"}`}
+                  aria-pressed={value.data_hora === slot.datetime.slice(0, 16)}
+                  className={`relative min-h-16 rounded-xl border px-3 py-2.5 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 sm:rounded-2xl sm:px-4 sm:py-3 ${value.data_hora === slot.datetime.slice(0, 16) ? "border-blue-700 bg-blue-600 text-white shadow-md ring-2 ring-blue-200" : "border-slate-200 bg-slate-50 text-slate-700 hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50"}`}
                 >
-                  <span className="block text-sm font-black">{slot.time}</span>
+                  <span className="block text-base font-black">{slot.time}</span>
                   <span className="block text-xs font-medium opacity-80">Disponível</span>
+                  {value.data_hora === slot.datetime.slice(0, 16) && <span className="absolute right-3 top-2.5 text-xs font-black" aria-hidden="true">✓</span>}
                 </button>
               ))}
             </div>
