@@ -1,76 +1,76 @@
-import { useState } from "react"
-import type { FormEvent } from "react"
-import { Link, Navigate, useNavigate } from "react-router-dom"
-import { SiteHeader, SiteShell } from "../../components/layout/UnifiedPageFrame"
-import { useAuth } from "../../services/auth/useAuth"
-import { presentRequestError } from "../../services/api/errors"
-import PasswordInput from "../../components/ui/PasswordInput"
+import { useState, type FormEvent } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
+import { SiteHeader, SiteShell } from "../../components/layout/UnifiedPageFrame";
+import PasswordInput from "../../components/ui/PasswordInput";
+import { presentRequestError } from "../../services/api/errors";
+import { useAuth } from "../../services/auth/useAuth";
 
-type Mode = "login" | "register"
+type Mode = "login" | "register";
 
 interface LoginPageProps {
-  mode?: Mode
+  mode?: Mode;
 }
 
 export function LoginPage({ mode = "login" }: LoginPageProps) {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
-  const { status, signIn, register } = useAuth()
+  const auth = useAuth();
+  const { status } = auth;
 
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const titleByMode = {
     login: "Entrar na conta",
     register: "Criar conta",
-  }
+  };
 
   const descriptionByMode = {
     login: "Entre para acessar sua agenda e seus dados.",
     register: "Cadastre-se para agendar os cuidados do seu pet.",
-  }
+  };
 
   const submitLabelByMode = {
     login: "Entrar",
     register: "Criar cadastro",
-  }
+  };
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setLoading(true)
-    setError("")
+    event.preventDefault();
+    setLoading(true);
+    setError("");
 
     try {
       if (mode === "register") {
         if (password !== confirmPassword) {
-          setError("As senhas não coincidem.")
-          return
+          setError("As senhas não coincidem.");
+          return;
         }
 
-        await register({
+        await auth.register({
           name: name.trim(),
           email: email.trim().toLowerCase(),
           password,
-        })
-        navigate("/app/dashboard")
-        return
+        });
+        navigate("/app/dashboard");
+        return;
       }
 
-      await signIn({ email: email.trim(), password })
-      navigate("/app/dashboard")
+      await auth.signIn({ email: email.trim(), password });
+      navigate("/app/dashboard");
     } catch (requestError) {
-      setError(presentRequestError(requestError))
+      setError(presentRequestError(requestError));
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   if (status === "authenticated") {
-    return <Navigate to="/app/dashboard" replace />
+    return <Navigate to="/app/dashboard" replace />;
   }
 
   return (
@@ -98,9 +98,7 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
                 {titleByMode[mode]}
               </h1>
 
-              <p className="mt-3 max-w-md text-white/80">
-                {descriptionByMode[mode]}
-              </p>
+              <p className="mt-3 max-w-md text-white/80">{descriptionByMode[mode]}</p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
@@ -124,18 +122,13 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
                 >
                   <p className="text-sm font-black">{item.title}</p>
 
-                  <p className="mt-1 text-xs leading-5 text-white/80">
-                    {item.text}
-                  </p>
+                  <p className="mt-1 text-xs leading-5 text-white/80">{item.text}</p>
                 </div>
               ))}
             </div>
           </aside>
 
-          <form
-            className="flex flex-col justify-center p-8 sm:p-10"
-            onSubmit={handleSubmit}
-          >
+          <form className="flex flex-col justify-center p-8 sm:p-10" onSubmit={handleSubmit}>
             <div className="mx-auto w-full max-w-md">
               <h2 className="text-2xl font-black text-slate-950 sm:text-3xl">
                 {titleByMode[mode]}
@@ -185,9 +178,7 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
                       className="rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                       minLength={6}
                       value={confirmPassword}
-                      onChange={(event) =>
-                        setConfirmPassword(event.target.value)
-                      }
+                      onChange={(event) => setConfirmPassword(event.target.value)}
                       required
                     />
                   </label>
@@ -221,5 +212,5 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
         </div>
       </main>
     </SiteShell>
-  )
+  );
 }

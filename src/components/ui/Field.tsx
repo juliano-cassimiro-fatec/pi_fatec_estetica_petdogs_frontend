@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import type { ReactNode } from "react";
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
@@ -7,7 +7,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
       {children}
       {hint && <span className="text-xs font-medium text-slate-500">{hint}</span>}
     </label>
-  )
+  );
 }
 
-export default Field
+export default Field;

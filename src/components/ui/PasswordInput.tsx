@@ -1,12 +1,11 @@
-import { useState } from "react"
-import type { InputHTMLAttributes } from "react"
-import Icon from "./Icon"
+import { useState, type InputHTMLAttributes } from "react";
+import Icon from "./Icon";
 
-type PasswordInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type">
+type PasswordInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type">;
 
 function PasswordInput({ className = "", ...props }: PasswordInputProps) {
-  const [visible, setVisible] = useState(false)
-  const actionLabel = visible ? "Ocultar senha" : "Mostrar senha"
+  const [visible, setVisible] = useState(false);
+  const actionLabel = visible ? "Ocultar senha" : "Mostrar senha";
 
   return (
     <div className="relative">
@@ -25,7 +24,7 @@ function PasswordInput({ className = "", ...props }: PasswordInputProps) {
         <Icon className="h-5 w-5" name={visible ? "eye-off" : "eye"} />
       </button>
     </div>
-  )
+  );
 }
 
-export default PasswordInput
+export default PasswordInput;
