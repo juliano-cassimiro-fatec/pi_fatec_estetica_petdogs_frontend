@@ -25,7 +25,7 @@ export function ServiceCard({
   text,
   highlight,
   actionHref,
-  actionLabel = "Agendar no WhatsApp",
+  actionLabel = "Agendar ",
 }: {
   title: string;
   text: string;

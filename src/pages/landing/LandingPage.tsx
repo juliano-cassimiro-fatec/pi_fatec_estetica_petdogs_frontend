@@ -160,17 +160,10 @@ export function LandingPage() {
                 className="rounded-2xl border border-blue-100 bg-white px-4 py-2 text-sm font-bold text-blue-700 transition hover:bg-blue-50"
                 to="/app/dashboard"
               >
-                Agendar pelo site
+                Entrar
               </Link>
             </nav>
-            <a
-              className="inline-flex items-center justify-center rounded-2xl bg-orange-500 px-4 py-3 text-sm font-black text-white shadow-lg shadow-orange-200 transition duration-300 hover:-translate-y-0.5 hover:bg-orange-600"
-              href={whatsappLink}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Agendar no WhatsApp
-            </a>
+          
           </>
         }
       />
@@ -193,14 +186,7 @@ export function LandingPage() {
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
-              <a
-                className="inline-flex items-center justify-center rounded-2xl bg-orange-500 px-6 py-4 text-base font-black text-white shadow-[0_18px_40px_-18px_rgba(249,115,22,0.85)] transition duration-300 hover:-translate-y-0.5 hover:bg-orange-600"
-                href={whatsappLink}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Agendar no WhatsApp
-              </a>
+   
               <a
                 className="inline-flex items-center justify-center rounded-2xl border border-blue-100 bg-white px-6 py-4 text-base font-black text-blue-700 transition duration-300 hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50"
                 href="#servicos"
@@ -392,14 +378,7 @@ export function LandingPage() {
             Fale com a equipe para encontrar o melhor horário.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <a
-              className="rounded-2xl bg-white px-6 py-3 font-black text-blue-700 transition hover:bg-blue-50"
-              href={whatsappLink}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Falar no WhatsApp
-            </a>
+           
             <a
               className="rounded-2xl border border-white/20 px-6 py-3 font-black text-white transition hover:bg-white/10"
               href="#top"
