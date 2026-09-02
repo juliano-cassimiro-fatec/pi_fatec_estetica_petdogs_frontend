@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { availabilityService } from "../../services/availability/availabilityService";
 import type {
   DayAvailability,
@@ -11,6 +11,7 @@ type ProfessionalOption = Pick<
   Professional,
   "_id" | "name" | "especialidade" | "horario_inicio" | "horario_fim"
 >;
+
 type ServiceOption = Pick<Service, "_id" | "name" | "duracao_min" | "preco">;
 
 interface ScheduleValue {
@@ -27,41 +28,31 @@ interface CalendarProps {
   disabled?: boolean;
 }
 
-function pad(value: number) {
-  return String(value).padStart(2, "0");
-}
+const pad = (value: number) => String(value).padStart(2, "0");
 
-function toMonthKey(date: Date) {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}`;
-}
+const monthKey = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}`;
 
-function toDateKey(date: Date) {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
+const dateKey = (date: Date) =>
+  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
-function startOfMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
-}
+const addMonths = (date: Date, amount: number) =>
+  new Date(date.getFullYear(), date.getMonth() + amount, 1);
 
-function addMonths(date: Date, amount: number) {
-  return new Date(date.getFullYear(), date.getMonth() + amount, 1);
-}
+function getDays(date: Date) {
+  const first = new Date(date.getFullYear(), date.getMonth(), 1);
+  const total = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 
-function buildMonthDays(anchor: Date) {
-  const firstDay = startOfMonth(anchor);
-  const daysInMonth = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0).getDate();
-  const startOffset = firstDay.getDay();
-  const cells: (Date | null)[] = [];
+  const days: (Date | null)[] = [];
 
-  for (let index = 0; index < startOffset; index += 1) {
-    cells.push(null);
+  for (let i = 0; i < first.getDay(); i++) {
+    days.push(null);
   }
 
-  for (let day = 1; day <= daysInMonth; day += 1) {
-    cells.push(new Date(anchor.getFullYear(), anchor.getMonth(), day));
+  for (let day = 1; day <= total; day++) {
+    days.push(new Date(date.getFullYear(), date.getMonth(), day));
   }
 
-  return cells;
+  return days;
 }
 
 export function AvailabilityCalendar({
@@ -71,104 +62,73 @@ export function AvailabilityCalendar({
   onChange,
   disabled = false,
 }: CalendarProps) {
-  const calendarId = useId();
-  const slotsId = useId();
-  const slotsHeadingRef = useRef<HTMLHeadingElement>(null);
-  const shouldNavigateToSlots = useRef(false);
-  const [monthAnchor, setMonthAnchor] = useState(() => {
-    if (value.data_hora) {
-      return new Date(value.data_hora);
-    }
+  const [month, setMonth] = useState(value.data_hora ? new Date(value.data_hora) : new Date());
 
-    return new Date();
-  });
-  const [monthDays, setMonthDays] = useState<DayAvailability[]>([]);
+  const [selectedDate, setSelectedDate] = useState(value.data_hora?.slice(0, 10) || "");
+
+  const [days, setDays] = useState<DayAvailability[]>([]);
   const [slots, setSlots] = useState<SlotAvailability[]>([]);
-  const [selectedDate, setSelectedDate] = useState(() =>
-    value.data_hora ? value.data_hora.slice(0, 10) : "",
-  );
-  const [loadingMonth, setLoadingMonth] = useState(false);
-  const [loadingDay, setLoadingDay] = useState(false);
-  const [calendarMessage, setCalendarMessage] = useState(
-    "Selecione profissional e serviço para ver os horários disponíveis",
-  );
+  const [loadingDays, setLoadingDays] = useState(false);
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
-  const selectedService = services.find((item) => item._id === value.servico);
-  const selectedProfessional = professionals.find((item) => item._id === value.profissional);
-  const hasPrerequisites = Boolean(value.profissional && value.servico);
+  const selectedService = services.find((service) => service._id === value.servico);
 
-  const monthLabel = useMemo(() => {
-    return new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(monthAnchor);
-  }, [monthAnchor]);
-
-  const monthAvailability = useMemo(
-    () => new Map(monthDays.map((day) => [day.date, day])),
-    [monthDays],
+  const selectedProfessional = professionals.find(
+    (professional) => professional._id === value.profissional,
   );
 
-  const selectedDateLabel = useMemo(() => {
-    if (!selectedDate) return "Selecione um dia";
-    const [year, month, day] = selectedDate.split("-").map(Number);
-    return new Intl.DateTimeFormat("pt-BR", {
-      weekday: "long",
-      day: "2-digit",
-      month: "long",
-    }).format(new Date(year, month - 1, day));
-  }, [selectedDate]);
+  const ready = Boolean(value.profissional && value.servico);
+
+  const daysMap = useMemo(() => new Map(days.map((day) => [day.date, day])), [days]);
+
+  const calendarDays = useMemo(() => getDays(month), [month]);
+
+  const monthName = new Intl.DateTimeFormat("pt-BR", {
+    month: "long",
+    year: "numeric",
+  }).format(month);
 
   useEffect(() => {
-    if (!value.profissional || !value.servico) {
-      const timeout = window.setTimeout(() => {
-        setMonthDays([]);
-        setSlots([]);
-        setCalendarMessage("Escolha um serviço e um profissional para carregar a agenda");
-      }, 0);
-
-      return () => window.clearTimeout(timeout);
+    if (!ready) {
+      setDays([]);
+      setSlots([]);
+      return;
     }
 
     let active = true;
-    void Promise.resolve().then(() => {
-      if (active) setLoadingMonth(true);
-    });
+
+    setLoadingDays(true);
 
     availabilityService
       .getMonthAvailability({
         profissionalId: value.profissional,
         servicoId: value.servico,
-        month: toMonthKey(monthAnchor),
+        month: monthKey(month),
       })
-      .then((days) => {
-        if (!active) return;
-        setMonthDays(days);
-        setCalendarMessage("Clique em um dia para ver os horários livres");
+      .then((response) => {
+        if (active) setDays(response);
       })
       .catch(() => {
-        if (!active) return;
-        setMonthDays([]);
-        setCalendarMessage("Não foi possível carregar o calendário");
+        if (active) setDays([]);
       })
       .finally(() => {
-        if (!active) return;
-        setLoadingMonth(false);
+        if (active) setLoadingDays(false);
       });
 
     return () => {
       active = false;
     };
-  }, [monthAnchor, value.profissional, value.servico]);
+  }, [month, value.profissional, value.servico, ready]);
 
   useEffect(() => {
-    if (!value.profissional || !value.servico || !selectedDate) {
-      const timeout = window.setTimeout(() => setSlots([]), 0);
-
-      return () => window.clearTimeout(timeout);
+    if (!ready || !selectedDate) {
+      setSlots([]);
+      return;
     }
 
     let active = true;
-    void Promise.resolve().then(() => {
-      if (active) setLoadingDay(true);
-    });
+
+    setLoadingSlots(true);
 
     availabilityService
       .getDayAvailability({
@@ -177,57 +137,57 @@ export function AvailabilityCalendar({
         date: selectedDate,
       })
       .then((response) => {
-        if (!active) return;
-        setSlots(response.slots);
-        setCalendarMessage(
-          response.available
-            ? "Escolha um horário disponível"
-            : "Nenhum horário disponível para este dia",
-        );
+        if (active) setSlots(response.slots);
       })
       .catch(() => {
-        if (!active) return;
-        setSlots([]);
-        setCalendarMessage("Não foi possível carregar os horários");
+        if (active) setSlots([]);
       })
       .finally(() => {
-        if (!active) return;
-        setLoadingDay(false);
+        if (active) setLoadingSlots(false);
       });
 
     return () => {
       active = false;
     };
-  }, [selectedDate, value.profissional, value.servico]);
+  }, [selectedDate, value.profissional, value.servico, ready]);
 
-  useEffect(() => {
-    if (!selectedDate || !shouldNavigateToSlots.current) return;
+  function selectProfessional(id: string) {
+    setSelectedDate("");
+    setSlots([]);
 
-    shouldNavigateToSlots.current = false;
-    const heading = slotsHeadingRef.current;
-    if (!heading) return;
+    onChange({
+      ...value,
+      profissional: id,
+      data_hora: "",
+    });
+  }
 
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    heading.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
-    heading.focus({ preventScroll: true });
-  }, [selectedDate]);
+  function selectService(id: string) {
+    setSelectedDate("");
+    setSlots([]);
 
-  const cells = buildMonthDays(monthAnchor);
+    onChange({
+      ...value,
+      servico: id,
+      data_hora: "",
+    });
+  }
 
   function selectDay(date: Date) {
-    const dateKey = toDateKey(date);
-    shouldNavigateToSlots.current = true;
-    setSelectedDate(dateKey);
+    const selected = dateKey(date);
+
+    setSelectedDate(selected);
     setSlots([]);
+
     onChange({
       ...value,
       data_hora: "",
     });
-    setMonthAnchor(date);
   }
 
   function selectSlot(slot: SlotAvailability) {
     if (disabled || !slot.available) return;
+
     onChange({
       ...value,
       data_hora: slot.datetime.slice(0, 16),
@@ -235,259 +195,206 @@ export function AvailabilityCalendar({
   }
 
   return (
-    <div className="grid gap-5">
-      <div className="grid gap-4 md:grid-cols-[1fr_1fr]">
-        <label className="grid gap-2 text-sm font-bold text-slate-700">
-          <span>Profissional *</span>
-          <select
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-            value={value.profissional}
-            onChange={(event) => {
-              setSelectedDate("");
-              onChange({ ...value, profissional: event.target.value, data_hora: "" });
-            }}
-            required
-            disabled={disabled}
-          >
-            <option value="">Selecione o profissional</option>
-            {professionals.map((professional) => (
-              <option key={professional._id} value={professional._id}>
-                {professional.name} - {professional.especialidade}
-              </option>
-            ))}
-          </select>
-        </label>
+    <div className="space-y-4">
+      {/* FILTROS */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <select
+          value={value.profissional}
+          onChange={(e) => selectProfessional(e.target.value)}
+          disabled={disabled}
+          className="
+            h-11 w-full rounded-xl border border-slate-200
+            bg-white px-3 text-sm text-slate-700
+            outline-none transition
+            focus:border-blue-500 focus:ring-2 focus:ring-blue-100
+          "
+        >
+          <option value="">Profissional</option>
 
-        <label className="grid gap-2 text-sm font-bold text-slate-700">
-          <span>Serviço *</span>
-          <select
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-            value={value.servico}
-            onChange={(event) => {
-              setSelectedDate("");
-              onChange({ ...value, servico: event.target.value, data_hora: "" });
-            }}
-            required
-            disabled={disabled}
-          >
-            <option value="">Selecione o serviço</option>
-            {services.map((service) => (
-              <option key={service._id} value={service._id}>
-                {service.name} - {service.duracao_min} min - R$ {Number(service.preco).toFixed(2)}
-              </option>
-            ))}
-          </select>
-        </label>
+          {professionals.map((professional) => (
+            <option key={professional._id} value={professional._id}>
+              {professional.name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={value.servico}
+          onChange={(e) => selectService(e.target.value)}
+          disabled={disabled}
+          className="
+            h-11 w-full rounded-xl border border-slate-200
+            bg-white px-3 text-sm text-slate-700
+            outline-none transition
+            focus:border-blue-500 focus:ring-2 focus:ring-blue-100
+          "
+        >
+          <option value="">Serviço</option>
+
+          {services.map((service) => (
+            <option key={service._id} value={service._id}>
+              {service.name} · {service.duracao_min} min
+            </option>
+          ))}
+        </select>
       </div>
 
-      {!hasPrerequisites && (
-        <div className="rounded-[1.75rem] border border-dashed border-blue-200 bg-blue-50 p-5 text-blue-900">
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-600">Calendário</p>
-          <h3 className="mt-2 text-xl font-black">
-            Preencha os campos acima para visualizar os horários
-          </h3>
-          <p className="mt-2 text-sm text-blue-900/80">
-            O calendário só aparece depois de escolher profissional e serviço. Assim evitamos
-            mostrar vários dias vazios e a tela fica mais clara para o usuário.
-          </p>
-        </div>
+      {!ready && (
+        <p className="py-6 text-center text-sm text-slate-400">
+          Escolha um profissional e um serviço.
+        </p>
       )}
 
-      {hasPrerequisites && (
+      {ready && (
         <>
-          <section
-            id={calendarId}
-            className="scroll-mt-6 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-slate-50 shadow-sm"
-            aria-label={`Calendário de ${monthLabel}`}
-          >
-            <div className="flex flex-col gap-4 border-b border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-              <div className="min-w-0">
-                <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-600">
-                  Calendário personalizado
-                </p>
-                <h3 className="mt-1 text-xl font-black capitalize text-slate-950">{monthLabel}</h3>
-                <p className="mt-1 text-sm text-slate-600">{calendarMessage}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-2 sm:flex" aria-label="Navegação entre meses">
-                <button
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
-                  type="button"
-                  onClick={() => setMonthAnchor((current) => addMonths(current, -1))}
-                  disabled={disabled || loadingMonth}
-                >
-                  <span aria-hidden="true">←</span>
-                  <span>Anterior</span>
-                </button>
-                <button
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 transition hover:border-blue-300 hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
-                  type="button"
-                  onClick={() => setMonthAnchor((current) => addMonths(current, 1))}
-                  disabled={disabled || loadingMonth}
-                >
-                  <span>Próximo</span>
-                  <span aria-hidden="true">→</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="p-2.5 sm:p-4">
-              <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-black uppercase tracking-wider text-slate-500 sm:gap-2 sm:text-xs sm:tracking-[0.14em]">
-                {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((label) => (
-                  <div className="py-1.5" key={label} aria-label={label}>
-                    {label.slice(0, 1)}
-                    <span className="hidden sm:inline">{label.slice(1)}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-1 grid grid-cols-7 gap-1 sm:mt-2 sm:gap-2">
-                {cells.map((cell, index) => {
-                  if (!cell) {
-                    return (
-                      <div
-                        key={`empty-${index}`}
-                        className="aspect-square min-h-11 sm:aspect-auto sm:min-h-20"
-                        aria-hidden="true"
-                      />
-                    );
-                  }
-
-                  const dateKey = toDateKey(cell);
-                  const dayInfo = monthAvailability.get(dateKey);
-                  const isSelected = selectedDate === dateKey;
-                  const isAvailable = Boolean(dayInfo?.available);
-                  const workingDay = dayInfo?.workingDay ?? false;
-
-                  return (
-                    <button
-                      key={dateKey}
-                      type="button"
-                      onClick={() => selectDay(cell)}
-                      disabled={disabled || loadingMonth || !workingDay || !isAvailable}
-                      aria-controls={slotsId}
-                      aria-label={`${dateKey}: ${isAvailable ? `${dayInfo?.slotsCount ?? 0} horários disponíveis` : workingDay ? "sem horários disponíveis" : "folga"}`}
-                      aria-pressed={isSelected}
-                      className={`relative flex aspect-square min-h-11 flex-col items-center justify-center rounded-xl border p-1 text-center transition focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 sm:aspect-auto sm:min-h-20 sm:items-start sm:justify-between sm:rounded-2xl sm:p-2.5 sm:text-left ${isSelected ? "border-blue-700 bg-blue-600 text-white shadow-md ring-2 ring-blue-200" : isAvailable ? "border-emerald-200 bg-white text-slate-800 shadow-sm hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50" : workingDay ? "cursor-not-allowed border-slate-200 bg-white text-slate-400" : "cursor-not-allowed border-dashed border-slate-200 bg-slate-100/80 text-slate-400"}`}
-                    >
-                      <span className="text-sm font-black sm:text-base">{cell.getDate()}</span>
-                      {isAvailable && !isSelected && (
-                        <span
-                          className="absolute bottom-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500 sm:hidden"
-                          aria-hidden="true"
-                        />
-                      )}
-                      {isSelected && (
-                        <span
-                          className="absolute right-1.5 top-1 text-[10px] font-black sm:right-2 sm:top-2"
-                          aria-hidden="true"
-                        >
-                          ✓
-                        </span>
-                      )}
-                      <span className="hidden text-[10px] font-bold uppercase leading-tight tracking-wide sm:block">
-                        {workingDay
-                          ? isAvailable
-                            ? `${dayInfo?.slotsCount ?? 0} vagas`
-                            : "Sem vagas"
-                          : "Folga"}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div
-                className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-200 pt-3 text-xs font-semibold text-slate-600"
-                aria-label="Legenda do calendário"
+          {/* CALENDÁRIO */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
+            <div className="mb-4 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setMonth((current) => addMonths(current, -1))}
+                disabled={disabled || loadingDays}
+                className="
+                  flex h-8 w-8 items-center justify-center
+                  rounded-lg text-slate-500
+                  hover:bg-slate-100
+                  disabled:opacity-30
+                "
               >
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                  Com horários
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-                  Indisponível
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-blue-600" />
-                  Selecionado
-                </span>
-              </div>
-            </div>
-          </section>
+                ←
+              </button>
 
-          <section
-            id={slotsId}
-            className="scroll-mt-6 rounded-[1.75rem] border border-slate-200 bg-white p-4"
-            aria-labelledby={`${slotsId}-heading`}
-          >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0">
-                <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-600">
-                  Horários disponíveis
-                </p>
-                <h3
-                  ref={slotsHeadingRef}
-                  id={`${slotsId}-heading`}
-                  className="scroll-mt-6 mt-1 text-lg font-black text-slate-950 outline-none"
-                  tabIndex={-1}
+              <span className="text-sm font-bold capitalize text-slate-800">{monthName}</span>
+
+              <button
+                type="button"
+                onClick={() => setMonth((current) => addMonths(current, 1))}
+                disabled={disabled || loadingDays}
+                className="
+                  flex h-8 w-8 items-center justify-center
+                  rounded-lg text-slate-500
+                  hover:bg-slate-100
+                  disabled:opacity-30
+                "
+              >
+                →
+              </button>
+            </div>
+
+            {/* SEMANA */}
+            <div className="mb-2 grid grid-cols-7">
+              {["D", "S", "T", "Q", "Q", "S", "S"].map((day, index) => (
+                <span
+                  key={`${day}-${index}`}
+                  className="
+                      text-center text-[11px]
+                      font-semibold text-slate-400
+                    "
                 >
-                  <span className="capitalize">{selectedDateLabel}</span>
-                </h3>
-                <p className="mt-1 text-sm text-slate-600" aria-live="polite">
-                  {selectedProfessional
-                    ? `${selectedProfessional.name}${selectedProfessional.especialidade ? ` - ${selectedProfessional.especialidade}` : ""}`
-                    : "Escolha um profissional"}
-                  {selectedService
-                    ? ` • ${selectedService.name} (${selectedService.duracao_min} min)`
-                    : ""}
-                </p>
-              </div>
-              {loadingDay && (
-                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-                  Carregando...
+                  {day}
                 </span>
-              )}
+              ))}
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-              {slots
-                .filter((slot) => slot.available)
-                .map((slot) => (
+            {/* DIAS */}
+            <div className="grid grid-cols-7 gap-1">
+              {calendarDays.map((date, index) => {
+                if (!date) {
+                  return <div key={`empty-${index}`} className="aspect-square" />;
+                }
+
+                const key = dateKey(date);
+                const info = daysMap.get(key);
+
+                const available = info?.workingDay && info.available;
+
+                const selected = selectedDate === key;
+
+                return (
                   <button
-                    key={slot.datetime}
+                    key={key}
                     type="button"
-                    onClick={() => selectSlot(slot)}
-                    disabled={disabled}
-                    aria-pressed={value.data_hora === slot.datetime.slice(0, 16)}
-                    className={`relative min-h-16 rounded-xl border px-3 py-2.5 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 sm:rounded-2xl sm:px-4 sm:py-3 ${value.data_hora === slot.datetime.slice(0, 16) ? "border-blue-700 bg-blue-600 text-white shadow-md ring-2 ring-blue-200" : "border-slate-200 bg-slate-50 text-slate-700 hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50"}`}
+                    onClick={() => selectDay(date)}
+                    disabled={disabled || loadingDays || !available}
+                    className={`
+                      relative aspect-square
+                      rounded-lg text-sm font-semibold
+                      transition
+
+                      ${
+                        selected
+                          ? "bg-blue-600 text-white"
+                          : available
+                            ? "text-slate-700 hover:bg-blue-50 hover:text-blue-600"
+                            : "text-slate-300"
+                      }
+                    `}
                   >
-                    <span className="block text-base font-black">{slot.time}</span>
-                    <span className="block text-xs font-medium opacity-80">Disponível</span>
-                    {value.data_hora === slot.datetime.slice(0, 16) && (
+                    {date.getDate()}
+
+                    {available && !selected && (
                       <span
-                        className="absolute right-3 top-2.5 text-xs font-black"
-                        aria-hidden="true"
-                      >
-                        ✓
-                      </span>
+                        className="
+                          absolute bottom-1 left-1/2
+                          h-1 w-1 -translate-x-1/2
+                          rounded-full bg-blue-500
+                        "
+                      />
                     )}
                   </button>
-                ))}
+                );
+              })}
             </div>
+          </div>
 
-            {!loadingDay && slots.filter((slot) => slot.available).length === 0 && selectedDate && (
-              <p className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm font-semibold text-amber-800">
-                Nenhum horário livre para esta data. Tente outro dia ou outro profissional.
-              </p>
-            )}
-            <a
-              className="mt-4 inline-flex text-sm font-bold text-blue-700 hover:text-blue-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-              href={`#${calendarId}`}
-            >
-              Voltar ao calendário
-            </a>
-          </section>
+          {/* HORÁRIOS */}
+          {selectedDate && (
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-sm font-semibold text-slate-700">Horários</span>
+
+                <span className="text-xs text-slate-400">
+                  {loadingSlots ? "Carregando..." : selectedDate}
+                </span>
+              </div>
+
+              {!loadingSlots && slots.filter((slot) => slot.available).length === 0 && (
+                <p className="py-4 text-center text-sm text-slate-400">
+                  Nenhum horário disponível.
+                </p>
+              )}
+
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                {slots
+                  .filter((slot) => slot.available)
+                  .map((slot) => {
+                    const selected = value.data_hora === slot.datetime.slice(0, 16);
+
+                    return (
+                      <button
+                        key={slot.datetime}
+                        type="button"
+                        onClick={() => selectSlot(slot)}
+                        disabled={disabled}
+                        className={`
+                          h-11 rounded-xl border
+                          text-sm font-semibold
+                          transition
+
+                          ${
+                            selected
+                              ? "border-blue-600 bg-blue-600 text-white"
+                              : "border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50"
+                          }
+                        `}
+                      >
+                        {slot.time}
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
