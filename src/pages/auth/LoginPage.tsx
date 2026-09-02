@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { SiteHeader, SiteShell } from "../../components/layout/UnifiedPageFrame";
 import PasswordInput from "../../components/ui/PasswordInput";
 import { presentRequestError } from "../../services/api/errors";
 import { useAuth } from "../../services/auth/useAuth";
@@ -13,7 +12,6 @@ interface LoginPageProps {
 
 export function LoginPage({ mode = "login" }: LoginPageProps) {
   const navigate = useNavigate();
-
   const auth = useAuth();
   const { status } = auth;
 
@@ -24,20 +22,12 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const titleByMode = {
-    login: "Entrar na conta",
-    register: "Criar conta",
-  };
+  const isRegister = mode === "register";
 
-  const descriptionByMode = {
-    login: "Entre para acessar sua agenda e seus dados.",
-    register: "Cadastre-se para agendar os cuidados do seu pet.",
-  };
-
-  const submitLabelByMode = {
-    login: "Entrar",
-    register: "Criar cadastro",
-  };
+  const title = isRegister ? "Criar sua conta" : "Bem-vindo de volta";
+  const description = isRegister
+    ? "Cadastre-se para cuidar do seu pet com facilidade."
+    : "Entre na sua conta para continuar.";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,9 +35,10 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
     setError("");
 
     try {
-      if (mode === "register") {
+      if (isRegister) {
         if (password !== confirmPassword) {
           setError("As senhas não coincidem.");
+          setLoading(false);
           return;
         }
 
@@ -56,11 +47,16 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
           email: email.trim().toLowerCase(),
           password,
         });
+
         navigate("/app/dashboard");
         return;
       }
 
-      await auth.signIn({ email: email.trim(), password });
+      await auth.signIn({
+        email: email.trim(),
+        password,
+      });
+
       navigate("/app/dashboard");
     } catch (requestError) {
       setError(presentRequestError(requestError));
@@ -74,143 +70,131 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
   }
 
   return (
-    <SiteShell>
-      <SiteHeader
-        rightAction={
-          <Link
-            className="inline-flex items-center justify-center rounded-2xl bg-orange-500 px-4 py-3 text-sm font-black text-white shadow-lg shadow-orange-200 transition hover:bg-orange-600"
-            to="/"
-          >
-            Voltar
-          </Link>
-        }
-      />
+    <main className="min-h-screen bg-slate-50 px-4 py-10 sm:px-6">
+      <div className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-md items-center justify-center">
+        <div className="w-full rounded-3xl bg-white p-7 shadow-sm sm:p-9">
+          {/* Logo / Nome */}
+          <div className="mb-8 text-center">
 
-      <main className="px-6 py-10">
-        <div className="mx-auto grid min-h-[calc(100vh-7rem)] w-full max-w-6xl overflow-hidden rounded-[2rem] border border-blue-100 bg-white shadow-[0_30px_80px_-50px_rgba(37,99,235,0.45)] lg:grid-cols-[0.8fr_1.2fr]">
-          <aside className="flex flex-col justify-between bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 p-8 text-white sm:p-10">
-            <div>
-              <div className="mt-10 inline-flex rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.24em]">
-                Estética PetDogs
+
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Estética PetDogs</h1>
+
+            <p className="mt-2 text-sm text-slate-500">{description}</p>
+          </div>
+
+          {/* Título */}
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-slate-900">{title}</h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              {isRegister
+                ? "Preencha seus dados para começar."
+                : "Digite seus dados para acessar sua conta."}
+            </p>
+          </div>
+
+          {/* Formulário */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {isRegister && (
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-medium text-slate-700">Nome</span>
+
+                <input
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  type="text"
+                  placeholder="Digite seu nome"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  required
+                />
+              </label>
+            )}
+
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-slate-700">E-mail</span>
+
+              <input
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                type="email"
+                placeholder="seuemail@email.com"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                required
+              />
+            </label>
+
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-slate-700">Senha</span>
+
+              <PasswordInput
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                minLength={6}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+              />
+            </label>
+
+            {isRegister && (
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-medium text-slate-700">
+                  Confirmar senha
+                </span>
+
+                <PasswordInput
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  minLength={6}
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  required
+                />
+              </label>
+            )}
+
+            {/* Erro */}
+            {error && (
+              <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600" role="alert">
+                {error}
               </div>
+            )}
 
-              <h1 className="mt-6 max-w-md text-3xl font-black tracking-tight sm:text-4xl">
-                {titleByMode[mode]}
-              </h1>
-
-              <p className="mt-3 max-w-md text-white/80">{descriptionByMode[mode]}</p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-              {[
-                {
-                  title: "Rápido",
-                  text: "Acesso em poucos passos.",
-                },
-                {
-                  title: "Seguro",
-                  text: "Dados protegidos e privados.",
-                },
-                {
-                  title: "Simples",
-                  text: "Tela direta e objetiva.",
-                },
-              ].map((item) => (
-                <div
-                  className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3"
-                  key={item.title}
-                >
-                  <p className="text-sm font-black">{item.title}</p>
-
-                  <p className="mt-1 text-xs leading-5 text-white/80">{item.text}</p>
-                </div>
-              ))}
-            </div>
-          </aside>
-
-          <form className="flex flex-col justify-center p-8 sm:p-10" onSubmit={handleSubmit}>
-            <div className="mx-auto w-full max-w-md">
-              <h2 className="text-2xl font-black text-slate-950 sm:text-3xl">
-                {titleByMode[mode]}
-              </h2>
-
-              <p className="mt-2 text-slate-600">{descriptionByMode[mode]}</p>
-
-              <div className="mt-6 grid gap-4">
-                {mode === "register" && (
-                  <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                    Nome
-                    <input
-                      className="rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                      value={name}
-                      onChange={(event) => setName(event.target.value)}
-                      required
-                    />
-                  </label>
-                )}
-
-                <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                  E-mail
-                  <input
-                    className="rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    required
-                  />
-                </label>
-
-                <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                  Senha
-                  <PasswordInput
-                    className="rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                    minLength={6}
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    required
-                  />
-                </label>
-
-                {mode === "register" && (
-                  <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                    Confirmar Senha
-                    <PasswordInput
-                      className="rounded-2xl border border-slate-200 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                      minLength={6}
-                      value={confirmPassword}
-                      onChange={(event) => setConfirmPassword(event.target.value)}
-                      required
-                    />
-                  </label>
-                )}
-              </div>
-
-              {error && (
-                <p
-                  className="mt-4 rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-700"
-                  role="alert"
-                >
-                  {error}
-                </p>
-              )}
-
-              <button
-                className="mt-6 w-full rounded-2xl bg-blue-600 px-5 py-3 font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60"
-                disabled={loading}
-                type="submit"
-              >
-                {loading ? "Aguarde..." : submitLabelByMode[mode]}
-              </button>
-
-              <div className="mt-5 flex flex-wrap gap-3 text-sm font-semibold text-blue-700">
-                <Link to={mode === "login" ? "/register" : "/login"}>
-                  {mode === "login" ? "Cadastrar" : "Entrar"}
-                </Link>
-              </div>
-            </div>
+            {/* Botão */}
+            <button
+              className="w-full rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={loading}
+              type="submit"
+            >
+              {loading ? "Aguarde..." : isRegister ? "Criar conta" : "Entrar"}
+            </button>
           </form>
+
+          {/* Alternar login/cadastro */}
+          <div className="mt-6 text-center text-sm text-slate-500">
+            {isRegister ? (
+              <>
+                Já possui uma conta?{" "}
+                <Link className="font-semibold text-blue-600 hover:text-blue-700" to="/login">
+                  Entrar
+                </Link>
+              </>
+            ) : (
+              <>
+                Ainda não possui uma conta?{" "}
+                <Link className="font-semibold text-blue-600 hover:text-blue-700" to="/register">
+                  Criar conta
+                </Link>
+              </>
+            )}
+          </div>
+
+          {/* Voltar */}
+          <div className="mt-6 text-center">
+            <Link className="text-sm text-slate-400 transition hover:text-slate-600" to="/">
+              ← Voltar para o início
+            </Link>
+          </div>
         </div>
-      </main>
-    </SiteShell>
+      </div>
+    </main>
   );
 }
