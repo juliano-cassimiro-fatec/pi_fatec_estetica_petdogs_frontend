@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import PasswordInput from "../../components/ui/PasswordInput";
 import { presentRequestError } from "../../services/api/errors";
 import { useAuth } from "../../services/auth/useAuth";
+import { showToast } from "../../components/ui/ToastProvider.tsx";
 
 type Mode = "login" | "register";
 
@@ -37,7 +38,9 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
     try {
       if (isRegister) {
         if (password !== confirmPassword) {
-          setError("As senhas não coincidem.");
+          const message = "As senhas não coincidem.";
+          setError(message);
+          showToast(message);
           setLoading(false);
           return;
         }

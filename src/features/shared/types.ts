@@ -67,7 +67,7 @@ export interface Professional {
 export interface Schedule {
   _id: string;
   data_hora: string;
-  status: "scheduled" | "canceled" | "completed" | "pending" | "confirmed";
+  status: "agendado" | "cancelado" | "completo" | "pendente" | "confirmado";
   cliente?: Customer;
   animal?: Pet;
   servico?: Service;
