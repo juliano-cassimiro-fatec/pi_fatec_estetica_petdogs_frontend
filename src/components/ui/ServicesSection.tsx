@@ -1,9 +1,9 @@
 import type { LandingService } from "../../services/landing/types";
 
-type ServicesSectionProps = {
+interface ServicesSectionProps {
   services: LandingService[];
   loading?: boolean;
-};
+}
 
 function ServiceSkeleton() {
   return (

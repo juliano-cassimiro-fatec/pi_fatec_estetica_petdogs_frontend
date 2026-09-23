@@ -74,7 +74,7 @@ export function getApiError(error: unknown): ApiError {
 
   const { status, headers, data } = error.response;
   const body = data && typeof data === "object" ? data : {};
-  const responseData = body as ApiErrorBody;
+  const responseData = body;
   const validationMessage = Object.values(responseData.errors ?? {}).flat()[0];
   const code = responseData.code ?? `HTTP_${status}`;
   const retryAfter = headers["retry-after"] ?? null;
