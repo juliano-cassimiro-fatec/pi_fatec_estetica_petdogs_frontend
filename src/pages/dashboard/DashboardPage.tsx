@@ -1089,6 +1089,7 @@ export function DashboardPage() {
                         <Field label="Nome *">
                           <input
                             className={inputClass}
+                            maxLength={20}
                             value={profileForm.name}
                             onChange={(event) =>
                               setProfileForm({
@@ -1104,6 +1105,7 @@ export function DashboardPage() {
                           <input
                             className={inputClass}
                             type="email"
+                            maxLength={20}
                             value={profileForm.email}
                             onChange={(event) =>
                               setProfileForm({
@@ -1119,6 +1121,7 @@ export function DashboardPage() {
                           <input
                             className={inputClass}
                             type="tel"
+                            maxLength={25}
                             inputMode="numeric"
                             placeholder="(11) 99999-9999"
                             value={formatPhone(profileForm.telefone)}
@@ -1278,6 +1281,7 @@ export function DashboardPage() {
                 <Field label="Nome *">
                   <input
                     className={inputClass}
+                    maxLength={20}
                     value={petForm.nome}
                     onChange={(event) =>
                       setPetForm({
@@ -1385,6 +1389,7 @@ export function DashboardPage() {
                   <input
                     className={inputClass}
                     placeholder="Ex.: Banho completo"
+                    maxLength={20}
                     value={serviceForm.name}
                     onChange={(event) =>
                       setServiceForm({
@@ -1474,6 +1479,7 @@ export function DashboardPage() {
                 <Field label="Nome *">
                   <input
                     className={inputClass}
+                    maxLength={20}
                     value={professionalForm.name}
                     onChange={(event) =>
                       setProfessionalForm({
@@ -1489,6 +1495,7 @@ export function DashboardPage() {
                   <input
                     className={inputClass}
                     type="email"
+                    maxLength={20}
                     value={professionalForm.email}
                     onChange={(event) =>
                       setProfessionalForm({
@@ -1526,6 +1533,7 @@ export function DashboardPage() {
                   <input
                     className={inputClass}
                     type="tel"
+                    maxLength={20}
                     inputMode="numeric"
                     placeholder="(11) 99999-9999"
                     value={formatPhone(professionalForm.telefone)}
@@ -1694,6 +1702,7 @@ export function DashboardPage() {
                 <Field label="Nome *">
                   <input
                     className={inputClass}
+                    maxLength={20}
                     value={clientForm.name}
                     onChange={(event) =>
                       setClientForm({
@@ -1709,6 +1718,7 @@ export function DashboardPage() {
                   <input
                     className={inputClass}
                     type="email"
+                    maxLength={20}
                     value={clientForm.email}
                     onChange={(event) =>
                       setClientForm({
@@ -1742,6 +1752,7 @@ export function DashboardPage() {
                   <input
                     className={inputClass}
                     type="tel"
+                    maxLength={20}
                     inputMode="numeric"
                     placeholder="(11) 99999-9999"
                     value={formatPhone(clientForm.telefone)}

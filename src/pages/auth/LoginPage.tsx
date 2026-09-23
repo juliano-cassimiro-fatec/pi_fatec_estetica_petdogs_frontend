@@ -105,6 +105,7 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
                 <input
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   type="text"
+                  maxLength={20}
                   placeholder="Digite seu nome"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
@@ -119,6 +120,7 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
               <input
                 className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 type="email"
+                maxLength={20}
                 placeholder="seuemail@email.com"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
