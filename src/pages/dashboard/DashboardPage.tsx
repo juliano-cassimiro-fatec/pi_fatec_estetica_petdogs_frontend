@@ -1083,7 +1083,7 @@ export function DashboardPage() {
                         <Field label="Nome *">
                           <input
                             className={inputClass}
-                            maxLength={20}
+                            maxLength={45}
                             value={profileForm.name}
                             onChange={(event) =>
                               setProfileForm({
@@ -1099,7 +1099,7 @@ export function DashboardPage() {
                           <input
                             className={inputClass}
                             type="email"
-                            maxLength={20}
+                            maxLength={45}
                             value={profileForm.email}
                             onChange={(event) =>
                               setProfileForm({
@@ -1274,7 +1274,7 @@ export function DashboardPage() {
                 <Field label="Nome *">
                   <input
                     className={inputClass}
-                    maxLength={20}
+                    maxLength={45}
                     value={petForm.nome}
                     onChange={(event) =>
                       setPetForm({
@@ -1380,7 +1380,7 @@ export function DashboardPage() {
                   <input
                     className={inputClass}
                     placeholder="Ex.: Banho completo"
-                    maxLength={20}
+                    maxLength={45}
                     value={serviceForm.name}
                     onChange={(event) =>
                       setServiceForm({
@@ -1470,7 +1470,7 @@ export function DashboardPage() {
                 <Field label="Nome *">
                   <input
                     className={inputClass}
-                    maxLength={20}
+                    maxLength={45}
                     value={professionalForm.name}
                     onChange={(event) =>
                       setProfessionalForm({
@@ -1486,7 +1486,7 @@ export function DashboardPage() {
                   <input
                     className={inputClass}
                     type="email"
-                    maxLength={20}
+                    maxLength={45}
                     value={professionalForm.email}
                     onChange={(event) =>
                       setProfessionalForm({
@@ -1694,7 +1694,7 @@ export function DashboardPage() {
                 <Field label="Nome *">
                   <input
                     className={inputClass}
-                    maxLength={20}
+                    maxLength={45}
                     value={clientForm.name}
                     onChange={(event) =>
                       setClientForm({
@@ -1710,7 +1710,7 @@ export function DashboardPage() {
                   <input
                     className={inputClass}
                     type="email"
-                    maxLength={20}
+                    maxLength={45}
                     value={clientForm.email}
                     onChange={(event) =>
                       setClientForm({
