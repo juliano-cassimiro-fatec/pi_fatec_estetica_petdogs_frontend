@@ -1,3 +1,5 @@
+import { resolveImageUrl } from "./PhotoPreview";
+
 interface AvatarProps {
   src?: string;
   alt: string;
@@ -16,7 +18,7 @@ export function Avatar({ src, alt, size = "md", fallbackLabel = "U" }: AvatarPro
     return (
       <img
         className={`${sizeClassMap[size]} rounded-2xl object-cover ring-2 ring-white shadow-sm`}
-        src={src}
+        src={resolveImageUrl(src)}
         alt={alt}
       />
     );

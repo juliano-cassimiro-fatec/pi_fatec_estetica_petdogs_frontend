@@ -1,5 +1,6 @@
 import axios from "axios";
 import { browserSessionStorage } from "../session/browserSession";
+import { getApiError } from "./errors";
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? "/api/v1",
@@ -19,6 +20,12 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    const apiError = getApiError(error);
+    window.dispatchEvent(
+      new CustomEvent("petdogs:toast", {
+        detail: { message: apiError.message, code: apiError.code },
+      }),
+    );
     if (error?.response?.status === 401) {
       browserSessionStorage.clearSession();
       window.dispatchEvent(new Event("petdogs:session-expired"));

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { AvailabilityCalendar } from "../../components/calendar/AvailabilityCalendar";
 import { Modal } from "../../components/ui/Modal";
@@ -18,7 +18,7 @@ import Card from "../../components/ui/Card";
 import Icon from "../../components/ui/Icon";
 import Field from "../../components/ui/Field";
 import PasswordInput from "../../components/ui/PasswordInput";
-import PhotoPreview from "../../components/ui/PhotoPreview";
+import PhotoPreview, { resolveImageUrl } from "../../components/ui/PhotoPreview";
 import {
   buttonClass,
   dangerButtonClass,
@@ -26,19 +26,21 @@ import {
   emptyPetForm,
   emptyProfessionalForm,
   emptyServiceForm,
+  formatPhone,
   formatCurrency,
-  getDashboardMode,
+  getScheduleStatusPresentation,
   inputClass,
-  readImage,
+  onlyDigits,
   secondaryButtonClass,
   validateWorkSchedule,
   weekdayOptions,
   type ConfirmModalState,
-  type DashboardTab,
   type ScheduleFormState,
   type TabKey,
 } from "../../features/dashboard/dashboardConfig";
 import { can } from "../../features/dashboard/permissions";
+import { uploadImage } from "../../services/uploads/uploadService";
+import { showToast } from "../../components/ui/ToastProvider.tsx";
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -50,10 +52,11 @@ export function DashboardPage() {
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const [, setMessage] = useState("");
+  const [, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [petForm, setPetForm] = useState(emptyPetForm());
   const [editingPetId, setEditingPetId] = useState<string | null>(null);
   const [petEditModalOpen, setPetEditModalOpen] = useState(false);
@@ -80,6 +83,29 @@ export function DashboardPage() {
   const isAdmin = user?.role === "admin";
   const isProfessional = user?.role === "profissional";
   const isCustomer = user?.role === "cliente";
+
+  async function handleImageChange(
+    event: ChangeEvent<HTMLInputElement>,
+    setPhoto: (value: string) => void,
+  ) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      setError("");
+      const uploadedImage = await uploadImage(file);
+      setPhoto(uploadedImage.caminho);
+    } catch (uploadError) {
+      const message =
+        uploadError instanceof Error ? uploadError.message : presentRequestError(uploadError);
+      setError(message);
+      showToast(message);
+      event.target.value = "";
+    } finally {
+      setUploading(false);
+    }
+  }
 
   const logout = useCallback(() => {
     auth.signOut();
@@ -209,6 +235,9 @@ export function DashboardPage() {
   function openDeleteConfirm(options: ConfirmModalState) {
     setConfirmModal(options);
   }
+  function openExitConfirm(options: ConfirmModalState) {
+    setConfirmModal(options);
+  }
 
   function startEditSchedule(schedule: Schedule) {
     setEditingScheduleId(schedule._id);
@@ -256,6 +285,7 @@ export function DashboardPage() {
 
   async function handlePetSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (uploading) return;
     await submit(
       async () => {
         const payload = {
@@ -274,6 +304,7 @@ export function DashboardPage() {
 
   async function handleScheduleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (uploading) return;
     await submit(
       async () => {
         await dashboardService.saveSchedule(scheduleForm, editingScheduleId);
@@ -289,6 +320,7 @@ export function DashboardPage() {
 
   async function handleServiceSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (uploading) return;
     await submit(
       async () => {
         const payload = {
@@ -307,14 +339,20 @@ export function DashboardPage() {
 
   async function handleProfessionalSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (uploading) return;
     const validationError = validateWorkSchedule(professionalForm);
     if (validationError) {
       setError(validationError);
+      showToast(validationError);
       return;
     }
     await submit(
       async () => {
-        const payload = { ...professionalForm, senha: professionalForm.senha || undefined };
+        const payload = {
+          ...professionalForm,
+          telefone: onlyDigits(professionalForm.telefone),
+          senha: professionalForm.senha || undefined,
+        };
         await dashboardService.saveProfessional(payload, editingProfessionalId);
         setProfessionalForm(emptyProfessionalForm());
         setEditingProfessionalId(null);
@@ -328,9 +366,14 @@ export function DashboardPage() {
 
   async function handleClientSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (uploading) return;
     await submit(
       async () => {
-        const payload = { ...clientForm, senha: clientForm.senha || undefined };
+        const payload = {
+          ...clientForm,
+          telefone: onlyDigits(clientForm.telefone),
+          senha: clientForm.senha || undefined,
+        };
         await dashboardService.saveCustomer(payload, editingClientId);
         setClientForm(emptyClientForm());
         setEditingClientId(null);
@@ -342,15 +385,20 @@ export function DashboardPage() {
 
   async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (uploading) return;
     if (isProfessional) {
       const validationError = validateWorkSchedule(profileForm);
       if (validationError) {
         setError(validationError);
+        showToast(validationError);
         return;
       }
     }
     await submit(async () => {
-      await dashboardService.updateProfile(user?.role ?? "cliente", profileForm);
+      await dashboardService.updateProfile(user?.role ?? "cliente", {
+        ...profileForm,
+        telefone: onlyDigits(profileForm.telefone),
+      });
       await auth.refreshUser();
     }, "Perfil atualizado com sucesso");
   }
@@ -391,7 +439,6 @@ export function DashboardPage() {
                     Banho & Tosa
                   </h1>
 
-                  <p className="mt-1 text-sm text-slate-500">Olá, {user.name}</p>
                 </div>
 
                 {/* Navegação */}
@@ -426,13 +473,7 @@ export function DashboardPage() {
                       label: "Clientes",
                       icon: "clients",
                       show: isAdmin,
-                    },
-                    {
-                      key: "perfil",
-                      label: "Perfil",
-                      icon: "settings",
-                      show: isCustomer || isProfessional,
-                    },
+                    }
                   ]
                     .filter((item) => item.show)
                     .map((item) => (
@@ -440,27 +481,57 @@ export function DashboardPage() {
                         key={item.key}
                         type="button"
                         onClick={() => setActiveTab(item.key as TabKey)}
-                        className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition ${
-                          activeTab === item.key
-                            ? "bg-blue-600 text-white shadow-sm"
-                            : "text-slate-600 hover:bg-white hover:text-slate-950"
-                        }`}
+                        className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition ${activeTab === item.key
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "text-slate-600 hover:bg-white hover:text-slate-950"
+                          }`}
                       >
                         {item.label}
                       </button>
                     ))}
                 </nav>
 
-                {/* Sair */}
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="inline-flex shrink-0 items-center justify-center rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-                >
-                  Sair
-                </button>
+                <div className="flex items-center gap-2">
+
+                  {!isAdmin && (
+                    <button
+                      onClick={() => setActiveTab("perfil")}
+                      type="button"
+                      className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                        <PhotoPreview
+                          src={user?.foto}
+                          alt="Foto do usuário"
+                          className="h-8 w-8 rounded-full"
+                        />
+                      </span>
+                      <span className="hidden sm:block">Perfil</span>
+                    </button>
+                  )}
+
+                  {/* Sair */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      openExitConfirm({
+                        title: "Sair da aplicação?",
+                        description: "Você será desconectado da aplicação.",
+                        confirmLabel: "Sair",
+                        tone: "warning",
+                        onConfirm: async () => logout(),
+                      })
+                    }
+                    className="inline-flex shrink-0 items-center justify-center rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                  >
+                    Sair
+                  </button>
+
+                </div>
+
               </div>
             </header>
+
 
             {/* =====================================================
               CONTEÚDO
@@ -471,34 +542,6 @@ export function DashboardPage() {
             ================================================== */}
               {activeTab === "agenda" && (
                 <section className="space-y-6">
-                  {isCustomer && (
-                    <Card
-                      icon="calendar"
-                      title="Novo agendamento"
-                      description="Escolha seu pet, serviço, profissional e horário."
-                    >
-                      <button
-                        className={buttonClass}
-                        type="button"
-                        onClick={openNewScheduleModal}
-                        disabled={
-                          pets.length === 0 || services.length === 0 || professionals.length === 0
-                        }
-                      >
-                        <Icon name="calendar" />
-                        Novo agendamento
-                      </button>
-
-                      {(pets.length === 0 ||
-                        services.length === 0 ||
-                        professionals.length === 0) && (
-                        <p className="mt-3 text-xs font-medium text-slate-500">
-                          Cadastre um pet e aguarde os serviços e profissionais disponíveis para
-                          realizar um agendamento.
-                        </p>
-                      )}
-                    </Card>
-                  )}
 
                   <Card
                     icon="calendar"
@@ -511,17 +554,28 @@ export function DashboardPage() {
                           : "Visualize seus horários."
                     }
                   >
+
                     <div className="mb-5 flex justify-end">
-                      <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">
-                        {schedules.length} registro(s)
-                      </span>
+                      <button
+                        className={buttonClass}
+                        type="button"
+                        onClick={openNewScheduleModal}
+                        disabled={
+                          pets.length === 0 || services.length === 0 || professionals.length === 0
+                        }
+                      >
+                        Novo agendamento
+                      </button>
                     </div>
 
                     <div className="grid gap-3">
-                      {schedules.map((schedule) => (
+                      {schedules.map((schedule) => {
+                        const statusPresentation = getScheduleStatusPresentation(schedule.status);
+
+                        return (
                         <article
                           key={schedule._id}
-                          className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-blue-200 hover:shadow-sm"
+                          className={`rounded-2xl border bg-white p-4 transition hover:shadow-sm ${statusPresentation.border}`}
                         >
                           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                             <div>
@@ -549,18 +603,26 @@ export function DashboardPage() {
 
                               <div className="mt-3 flex flex-wrap gap-2">
                                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-                                  {new Date(schedule.data_hora).toLocaleString()}
+                                  {new Date(schedule.data_hora).toLocaleString('pt-BR', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
                                 </span>
 
-                                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-                                  {schedule.status}
+                                <span
+                                  className={`rounded-full px-3 py-1 text-xs font-bold ${statusPresentation.badge}`}
+                                >
+                                  {statusPresentation.label}
                                 </span>
                               </div>
                             </div>
 
                             <div className="flex flex-wrap gap-2">
                               {can(user.role, "schedule:edit") &&
-                                schedule.status === "scheduled" && (
+                                schedule.status === "agendado" && (
                                   <button
                                     className={secondaryButtonClass}
                                     type="button"
@@ -572,7 +634,7 @@ export function DashboardPage() {
                                 )}
 
                               {can(user.role, "schedule:cancel") &&
-                                schedule.status === "scheduled" && (
+                                schedule.status === "agendado" && (
                                   <button
                                     className={dangerButtonClass}
                                     type="button"
@@ -593,7 +655,8 @@ export function DashboardPage() {
                             </div>
                           </div>
                         </article>
-                      ))}
+                        );
+                      })}
 
                       {schedules.length === 0 && (
                         <div className="rounded-2xl bg-slate-50 px-6 py-10 text-center">
@@ -635,7 +698,6 @@ export function DashboardPage() {
                           setPetEditModalOpen(true);
                         }}
                       >
-                        <Icon name="pets" />
                         Novo pet
                       </button>
                     </div>
@@ -648,7 +710,7 @@ export function DashboardPage() {
                         >
                           {pet.foto ? (
                             <img
-                              src={pet.foto}
+                              src={resolveImageUrl(pet.foto)}
                               alt={pet.nome}
                               className="h-40 w-full object-cover"
                             />
@@ -737,7 +799,6 @@ export function DashboardPage() {
                             setServiceEditModalOpen(true);
                           }}
                         >
-                          <Icon name="services" />
                           Novo serviço
                         </button>
                       </div>
@@ -835,7 +896,6 @@ export function DashboardPage() {
                             setProfessionalEditModalOpen(true);
                           }}
                         >
-                          <Icon name="users" />
                           Novo profissional
                         </button>
                       </div>
@@ -850,7 +910,7 @@ export function DashboardPage() {
                           <div className="flex items-center gap-3">
                             {professional.foto ? (
                               <img
-                                src={professional.foto}
+                                src={resolveImageUrl(professional.foto)}
                                 alt={professional.name}
                                 className="h-14 w-14 rounded-2xl object-cover"
                               />
@@ -938,7 +998,6 @@ export function DashboardPage() {
                           setClientEditModalOpen(true);
                         }}
                       >
-                        <Icon name="clients" />
                         Novo cliente
                       </button>
                     </div>
@@ -952,7 +1011,7 @@ export function DashboardPage() {
                           <div className="flex min-w-0 items-center gap-3">
                             {customer.foto ? (
                               <img
-                                src={customer.foto}
+                                src={resolveImageUrl(customer.foto)}
                                 alt={customer.name}
                                 className="h-12 w-12 shrink-0 rounded-xl object-cover"
                               />
@@ -1030,6 +1089,7 @@ export function DashboardPage() {
                         <Field label="Nome *">
                           <input
                             className={inputClass}
+                            maxLength={20}
                             value={profileForm.name}
                             onChange={(event) =>
                               setProfileForm({
@@ -1045,6 +1105,7 @@ export function DashboardPage() {
                           <input
                             className={inputClass}
                             type="email"
+                            maxLength={20}
                             value={profileForm.email}
                             onChange={(event) =>
                               setProfileForm({
@@ -1060,37 +1121,46 @@ export function DashboardPage() {
                           <input
                             className={inputClass}
                             type="tel"
-                            value={profileForm.telefone}
+                            maxLength={25}
+                            inputMode="numeric"
+                            placeholder="(11) 99999-9999"
+                            value={formatPhone(profileForm.telefone)}
                             onChange={(event) =>
                               setProfileForm({
                                 ...profileForm,
-                                telefone: event.target.value,
+                                telefone: formatPhone(event.target.value),
                               })
                             }
                           />
                         </Field>
 
-                        <Field label="Foto">
+                      </div>
+
+                      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center">
+                        <PhotoPreview
+                          src={profileForm.foto}
+                          alt="Foto do perfil"
+                          className="h-28 w-28 shrink-0 rounded-2xl sm:h-32 sm:w-32"
+                        />
+
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-slate-900">Foto do perfil</p>
+                          <p className="mt-1 text-sm text-slate-500">
+                            Escolha uma imagem para identificar seu perfil.
+                          </p>
                           <input
-                            className={inputClass}
+                            className={`${inputClass} mt-3 w-full text-sm sm:max-w-md`}
                             type="file"
-                            accept="image/*"
+                            accept="image/jpeg,image/png,image/webp,image/gif"
+                            disabled={uploading || saving}
                             onChange={(event) =>
-                              void readImage(
-                                event,
-                                (foto) =>
-                                  setProfileForm({
-                                    ...profileForm,
-                                    foto,
-                                  }),
-                                setError,
+                              void handleImageChange(event, (foto) =>
+                                setProfileForm({ ...profileForm, foto }),
                               )
                             }
                           />
-                        </Field>
+                        </div>
                       </div>
-
-                      <PhotoPreview src={profileForm.foto} alt="Foto do perfil" />
 
                       <div>
                         <button className={buttonClass} disabled={saving}>
@@ -1211,6 +1281,7 @@ export function DashboardPage() {
                 <Field label="Nome *">
                   <input
                     className={inputClass}
+                    maxLength={20}
                     value={petForm.nome}
                     onChange={(event) =>
                       setPetForm({
@@ -1275,19 +1346,14 @@ export function DashboardPage() {
                 <Field label="Foto">
                   <input
                     className={inputClass}
-                    type="file"
-                    accept="image/*"
-                    onChange={(event) =>
-                      void readImage(
-                        event,
-                        (foto) =>
-                          setPetForm({
-                            ...petForm,
-                            foto,
-                          }),
-                        setError,
-                      )
-                    }
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/gif"
+                            disabled={uploading || saving}
+                            onChange={(event) =>
+                              void handleImageChange(event, (foto) =>
+                                setPetForm({ ...petForm, foto }),
+                              )
+                            }
                   />
                 </Field>
 
@@ -1323,6 +1389,7 @@ export function DashboardPage() {
                   <input
                     className={inputClass}
                     placeholder="Ex.: Banho completo"
+                    maxLength={20}
                     value={serviceForm.name}
                     onChange={(event) =>
                       setServiceForm({
@@ -1412,6 +1479,7 @@ export function DashboardPage() {
                 <Field label="Nome *">
                   <input
                     className={inputClass}
+                    maxLength={20}
                     value={professionalForm.name}
                     onChange={(event) =>
                       setProfessionalForm({
@@ -1427,6 +1495,7 @@ export function DashboardPage() {
                   <input
                     className={inputClass}
                     type="email"
+                    maxLength={20}
                     value={professionalForm.email}
                     onChange={(event) =>
                       setProfessionalForm({
@@ -1464,11 +1533,14 @@ export function DashboardPage() {
                   <input
                     className={inputClass}
                     type="tel"
-                    value={professionalForm.telefone}
+                    maxLength={20}
+                    inputMode="numeric"
+                    placeholder="(11) 99999-9999"
+                    value={formatPhone(professionalForm.telefone)}
                     onChange={(event) =>
                       setProfessionalForm({
                         ...professionalForm,
-                        telefone: event.target.value,
+                        telefone: formatPhone(event.target.value),
                       })
                     }
                   />
@@ -1506,16 +1578,15 @@ export function DashboardPage() {
                               ...professionalForm,
                               dias_trabalho: selected
                                 ? professionalForm.dias_trabalho.filter(
-                                    (item) => item !== option.value,
-                                  )
+                                  (item) => item !== option.value,
+                                )
                                 : [...professionalForm.dias_trabalho, option.value],
                             })
                           }
-                          className={`rounded-xl border px-3 py-2 text-sm font-bold transition ${
-                            selected
-                              ? "border-blue-600 bg-blue-600 text-white"
-                              : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                          }`}
+                          className={`rounded-xl border px-3 py-2 text-sm font-bold transition ${selected
+                            ? "border-blue-600 bg-blue-600 text-white"
+                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                            }`}
                         >
                           {option.label}
                         </button>
@@ -1590,16 +1661,11 @@ export function DashboardPage() {
                   <input
                     className={inputClass}
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    disabled={uploading || saving}
                     onChange={(event) =>
-                      void readImage(
-                        event,
-                        (foto) =>
-                          setProfessionalForm({
-                            ...professionalForm,
-                            foto,
-                          }),
-                        setError,
+                      void handleImageChange(event, (foto) =>
+                        setProfessionalForm({ ...professionalForm, foto }),
                       )
                     }
                   />
@@ -1636,6 +1702,7 @@ export function DashboardPage() {
                 <Field label="Nome *">
                   <input
                     className={inputClass}
+                    maxLength={20}
                     value={clientForm.name}
                     onChange={(event) =>
                       setClientForm({
@@ -1651,6 +1718,7 @@ export function DashboardPage() {
                   <input
                     className={inputClass}
                     type="email"
+                    maxLength={20}
                     value={clientForm.email}
                     onChange={(event) =>
                       setClientForm({
@@ -1684,11 +1752,14 @@ export function DashboardPage() {
                   <input
                     className={inputClass}
                     type="tel"
-                    value={clientForm.telefone}
+                    maxLength={20}
+                    inputMode="numeric"
+                    placeholder="(11) 99999-9999"
+                    value={formatPhone(clientForm.telefone)}
                     onChange={(event) =>
                       setClientForm({
                         ...clientForm,
-                        telefone: event.target.value,
+                        telefone: formatPhone(event.target.value),
                       })
                     }
                   />
@@ -1698,16 +1769,11 @@ export function DashboardPage() {
                   <input
                     className={inputClass}
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    disabled={uploading || saving}
                     onChange={(event) =>
-                      void readImage(
-                        event,
-                        (foto) =>
-                          setClientForm({
-                            ...clientForm,
-                            foto,
-                          }),
-                        setError,
+                      void handleImageChange(event, (foto) =>
+                        setClientForm({ ...clientForm, foto }),
                       )
                     }
                   />
@@ -1742,11 +1808,10 @@ export function DashboardPage() {
             >
               <div className="grid gap-5">
                 <div
-                  className={`rounded-2xl border p-4 ${
-                    confirmModal?.tone === "warning"
-                      ? "border-amber-200 bg-amber-50 text-amber-900"
-                      : "border-red-200 bg-red-50 text-red-900"
-                  }`}
+                  className={`rounded-2xl border p-4 ${confirmModal?.tone === "warning"
+                    ? "border-amber-200 bg-amber-50 text-amber-900"
+                    : "border-red-200 bg-red-50 text-red-900"
+                    }`}
                 >
                   <p className="text-sm font-semibold">
                     Essa ação não pode ser desfeita. Deseja realmente continuar?

@@ -1,4 +1,3 @@
-import type { ChangeEvent } from "react";
 import type { AuthUser } from "../shared/types";
 import type { IconName } from "../../components/ui/Icon";
 
@@ -74,6 +73,66 @@ export function formatCurrency(value: number) {
   return Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+export function onlyDigits(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+export function formatPhone(value: string) {
+  const digits = onlyDigits(value).slice(0, 11);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
+export function formatCpf(value: string) {
+  const digits = onlyDigits(value).slice(0, 11);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+}
+
+export function getScheduleStatusPresentation(status: string) {
+  const presentations: Record<string, { label: string; badge: string; border: string }> = {
+    agendado: {
+      label: "Agendado",
+      badge: "bg-blue-50 text-blue-700",
+      border: "border-slate-200 hover:border-blue-200",
+    },
+    pendente: {
+      label: "Pendente",
+      badge: "bg-amber-50 text-amber-700",
+      border: "border-amber-200 hover:border-amber-300",
+    },
+    confirmado: {
+      label: "Confirmado",
+      badge: "bg-emerald-50 text-emerald-700",
+      border: "border-emerald-200 hover:border-emerald-300",
+    },
+    completo: {
+      label: "Concluído",
+      badge: "bg-green-50 text-green-700",
+      border: "border-green-200 hover:border-green-300",
+    },
+    cancelado: {
+      label: "Cancelado",
+      badge: "bg-red-50 text-red-700",
+      border: "border-red-200 bg-red-50/30 hover:border-red-300",
+    },
+  };
+
+  return (
+    presentations[status] ?? {
+      label: status,
+      badge: "bg-slate-100 text-slate-600",
+      border: "border-slate-200 hover:border-slate-300",
+    }
+  );
+}
+
 export function validateWorkSchedule(form: {
   dias_trabalho: number[];
   horario_inicio: string;
@@ -113,41 +172,3 @@ export function getDashboardMode(role?: Role) {
   };
 }
 
-async function compressImage(file: File): Promise<string> {
-  const image = new Image();
-  const source = URL.createObjectURL(file);
-  try {
-    await new Promise<void>((resolve, reject) => {
-      image.onload = () => resolve();
-      image.onerror = () => reject(new Error("Imagem inválida"));
-      image.src = source;
-    });
-    const maxSize = 900;
-    const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(image.width * scale);
-    canvas.height = Math.round(image.height * scale);
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("Não foi possível processar a imagem");
-    context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL("image/jpeg", 0.72);
-  } finally {
-    URL.revokeObjectURL(source);
-  }
-}
-
-export async function readImage(
-  event: ChangeEvent<HTMLInputElement>,
-  callback: (value: string) => void,
-  onError: (value: string) => void,
-) {
-  const file = event.target.files?.[0];
-  if (!file) return;
-  if (!file.type.startsWith("image/")) return onError("Selecione um arquivo de imagem válido");
-  if (file.size > 8 * 1024 * 1024) return onError("A imagem deve ter no máximo 8 MB");
-  try {
-    callback(await compressImage(file));
-  } catch {
-    onError("Não foi possível carregar a imagem");
-  }
-}
