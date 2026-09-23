@@ -39,9 +39,7 @@ export function LandingPage() {
       <header className="border-b border-slate-100 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-5">
           <div>
-            <h1 className="text-xl font-black text-blue-600">
-              PetDog&apos;s
-            </h1>
+            <h1 className="text-xl font-black text-blue-600">PetDog&apos;s</h1>
 
             <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
               Estética Animal
@@ -79,8 +77,8 @@ export function LandingPage() {
               </h2>
 
               <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
-                Banho e tosa com cuidado profissional para deixar seu pet
-                limpo, confortável e bem cuidado.
+                Banho e tosa com cuidado profissional para deixar seu pet limpo, confortável e bem
+                cuidado.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
@@ -108,10 +106,7 @@ export function LandingPage() {
           </div>
         </section>
 
-        <ServicesSection
-          services={services}
-          loading={loadingServices}
-        />
+        <ServicesSection services={services} loading={loadingServices} />
       </main>
     </div>
   );

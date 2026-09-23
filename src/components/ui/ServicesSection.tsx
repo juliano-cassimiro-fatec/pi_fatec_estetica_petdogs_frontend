@@ -20,24 +20,16 @@ function ServiceSkeleton() {
   );
 }
 
-function ServiceCard({
-  service,
-}: {
-  service: LandingService;
-}) {
+function ServiceCard({ service }: { service: LandingService }) {
   return (
     <article className="group rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg">
       <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-xl text-blue-600">
         🐾
       </div>
 
-      <h3 className="mt-5 text-xl font-black text-slate-900">
-        {service.name}
-      </h3>
+      <h3 className="mt-5 text-xl font-black text-slate-900">{service.name}</h3>
 
-      <p className="mt-3 leading-7 text-slate-600">
-        {service.description}
-      </p>
+      <p className="mt-3 leading-7 text-slate-600">{service.description}</p>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         {service.price && (
@@ -53,24 +45,16 @@ function ServiceCard({
         )}
 
         {!service.price && !service.duration && (
-          <span className="text-sm font-bold text-blue-600">
-            Consulte valores
-          </span>
+          <span className="text-sm font-bold text-blue-600">Consulte valores</span>
         )}
       </div>
     </article>
   );
 }
 
-export function ServicesSection({
-  services,
-  loading = false,
-}: ServicesSectionProps) {
+export function ServicesSection({ services, loading = false }: ServicesSectionProps) {
   return (
-    <section
-      id="servicos"
-      className="bg-white px-4 py-16 sm:py-20"
-    >
+    <section id="servicos" className="bg-white px-4 py-16 sm:py-20">
       <div className="mx-auto max-w-7xl">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-bold uppercase tracking-widest text-blue-600">
@@ -82,22 +66,15 @@ export function ServicesSection({
           </h2>
 
           <p className="mt-4 text-base leading-7 text-slate-600">
-            Serviços realizados com cuidado, atenção e carinho para garantir
-            conforto e bem-estar ao seu pet.
+            Serviços realizados com cuidado, atenção e carinho para garantir conforto e bem-estar ao
+            seu pet.
           </p>
         </div>
 
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {loading
-            ? Array.from({ length: 3 }).map((_, index) => (
-                <ServiceSkeleton key={index} />
-              ))
-            : services.map((service) => (
-                <ServiceCard
-                  key={service.id}
-                  service={service}
-                />
-              ))}
+            ? Array.from({ length: 3 }).map((_, index) => <ServiceSkeleton key={index} />)
+            : services.map((service) => <ServiceCard key={service.id} service={service} />)}
         </div>
       </div>
     </section>

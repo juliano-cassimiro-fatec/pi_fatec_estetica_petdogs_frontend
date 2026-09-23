@@ -438,7 +438,6 @@ export function DashboardPage() {
                   <h1 className="text-2xl font-black tracking-tight text-slate-950">
                     Banho & Tosa
                   </h1>
-
                 </div>
 
                 {/* Navegação */}
@@ -473,7 +472,7 @@ export function DashboardPage() {
                       label: "Clientes",
                       icon: "clients",
                       show: isAdmin,
-                    }
+                    },
                   ]
                     .filter((item) => item.show)
                     .map((item) => (
@@ -481,10 +480,11 @@ export function DashboardPage() {
                         key={item.key}
                         type="button"
                         onClick={() => setActiveTab(item.key as TabKey)}
-                        className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition ${activeTab === item.key
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "text-slate-600 hover:bg-white hover:text-slate-950"
-                          }`}
+                        className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition ${
+                          activeTab === item.key
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "text-slate-600 hover:bg-white hover:text-slate-950"
+                        }`}
                       >
                         {item.label}
                       </button>
@@ -492,7 +492,6 @@ export function DashboardPage() {
                 </nav>
 
                 <div className="flex items-center gap-2">
-
                   {!isAdmin && (
                     <button
                       onClick={() => setActiveTab("perfil")}
@@ -526,12 +525,9 @@ export function DashboardPage() {
                   >
                     Sair
                   </button>
-
                 </div>
-
               </div>
             </header>
-
 
             {/* =====================================================
               CONTEÚDO
@@ -542,7 +538,6 @@ export function DashboardPage() {
             ================================================== */}
               {activeTab === "agenda" && (
                 <section className="space-y-6">
-
                   <Card
                     icon="calendar"
                     title="Agendamentos"
@@ -554,7 +549,6 @@ export function DashboardPage() {
                           : "Visualize seus horários."
                     }
                   >
-
                     <div className="mb-5 flex justify-end">
                       <button
                         className={buttonClass}
@@ -573,88 +567,88 @@ export function DashboardPage() {
                         const statusPresentation = getScheduleStatusPresentation(schedule.status);
 
                         return (
-                        <article
-                          key={schedule._id}
-                          className={`rounded-2xl border bg-white p-4 transition hover:shadow-sm ${statusPresentation.border}`}
-                        >
-                          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                            <div>
-                              <div className="flex flex-wrap items-center gap-2">
-                                <h3 className="font-black text-slate-950">
-                                  {schedule.animal?.nome ?? "Pet"}
-                                </h3>
+                          <article
+                            key={schedule._id}
+                            className={`rounded-2xl border bg-white p-4 transition hover:shadow-sm ${statusPresentation.border}`}
+                          >
+                            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                              <div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <h3 className="font-black text-slate-950">
+                                    {schedule.animal?.nome ?? "Pet"}
+                                  </h3>
 
-                                <span className="text-slate-300">•</span>
+                                  <span className="text-slate-300">•</span>
 
-                                <span className="text-sm font-bold text-blue-600">
-                                  {schedule.servico?.name ?? "Serviço"}
-                                </span>
-                              </div>
+                                  <span className="text-sm font-bold text-blue-600">
+                                    {schedule.servico?.name ?? "Serviço"}
+                                  </span>
+                                </div>
 
-                              <p className="mt-1 text-sm text-slate-500">
-                                Profissional: {schedule.profissional?.name ?? "Não informado"}
-                              </p>
-
-                              {isAdmin && (
-                                <p className="text-sm text-slate-500">
-                                  Cliente: {schedule.cliente?.name ?? "Não informado"}
+                                <p className="mt-1 text-sm text-slate-500">
+                                  Profissional: {schedule.profissional?.name ?? "Não informado"}
                                 </p>
-                              )}
 
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-                                  {new Date(schedule.data_hora).toLocaleString('pt-BR', {
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    year: '2-digit',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
-                                </span>
+                                {isAdmin && (
+                                  <p className="text-sm text-slate-500">
+                                    Cliente: {schedule.cliente?.name ?? "Não informado"}
+                                  </p>
+                                )}
 
-                                <span
-                                  className={`rounded-full px-3 py-1 text-xs font-bold ${statusPresentation.badge}`}
-                                >
-                                  {statusPresentation.label}
-                                </span>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                                    {new Date(schedule.data_hora).toLocaleString("pt-BR", {
+                                      day: "2-digit",
+                                      month: "2-digit",
+                                      year: "2-digit",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </span>
+
+                                  <span
+                                    className={`rounded-full px-3 py-1 text-xs font-bold ${statusPresentation.badge}`}
+                                  >
+                                    {statusPresentation.label}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-wrap gap-2">
+                                {can(user.role, "schedule:edit") &&
+                                  schedule.status === "agendado" && (
+                                    <button
+                                      className={secondaryButtonClass}
+                                      type="button"
+                                      onClick={() => startEditSchedule(schedule)}
+                                      disabled={saving}
+                                    >
+                                      Editar
+                                    </button>
+                                  )}
+
+                                {can(user.role, "schedule:cancel") &&
+                                  schedule.status === "agendado" && (
+                                    <button
+                                      className={dangerButtonClass}
+                                      type="button"
+                                      onClick={() =>
+                                        openDeleteConfirm({
+                                          title: "Cancelar agendamento?",
+                                          description: "O agendamento será cancelado.",
+                                          confirmLabel: "Cancelar agendamento",
+                                          tone: "warning",
+                                          onConfirm: () => cancelSchedule(schedule._id),
+                                        })
+                                      }
+                                      disabled={saving}
+                                    >
+                                      Cancelar
+                                    </button>
+                                  )}
                               </div>
                             </div>
-
-                            <div className="flex flex-wrap gap-2">
-                              {can(user.role, "schedule:edit") &&
-                                schedule.status === "agendado" && (
-                                  <button
-                                    className={secondaryButtonClass}
-                                    type="button"
-                                    onClick={() => startEditSchedule(schedule)}
-                                    disabled={saving}
-                                  >
-                                    Editar
-                                  </button>
-                                )}
-
-                              {can(user.role, "schedule:cancel") &&
-                                schedule.status === "agendado" && (
-                                  <button
-                                    className={dangerButtonClass}
-                                    type="button"
-                                    onClick={() =>
-                                      openDeleteConfirm({
-                                        title: "Cancelar agendamento?",
-                                        description: "O agendamento será cancelado.",
-                                        confirmLabel: "Cancelar agendamento",
-                                        tone: "warning",
-                                        onConfirm: () => cancelSchedule(schedule._id),
-                                      })
-                                    }
-                                    disabled={saving}
-                                  >
-                                    Cancelar
-                                  </button>
-                                )}
-                            </div>
-                          </div>
-                        </article>
+                          </article>
                         );
                       })}
 
@@ -1133,7 +1127,6 @@ export function DashboardPage() {
                             }
                           />
                         </Field>
-
                       </div>
 
                       <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center">
@@ -1346,14 +1339,12 @@ export function DashboardPage() {
                 <Field label="Foto">
                   <input
                     className={inputClass}
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp,image/gif"
-                            disabled={uploading || saving}
-                            onChange={(event) =>
-                              void handleImageChange(event, (foto) =>
-                                setPetForm({ ...petForm, foto }),
-                              )
-                            }
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    disabled={uploading || saving}
+                    onChange={(event) =>
+                      void handleImageChange(event, (foto) => setPetForm({ ...petForm, foto }))
+                    }
                   />
                 </Field>
 
@@ -1578,15 +1569,16 @@ export function DashboardPage() {
                               ...professionalForm,
                               dias_trabalho: selected
                                 ? professionalForm.dias_trabalho.filter(
-                                  (item) => item !== option.value,
-                                )
+                                    (item) => item !== option.value,
+                                  )
                                 : [...professionalForm.dias_trabalho, option.value],
                             })
                           }
-                          className={`rounded-xl border px-3 py-2 text-sm font-bold transition ${selected
-                            ? "border-blue-600 bg-blue-600 text-white"
-                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                            }`}
+                          className={`rounded-xl border px-3 py-2 text-sm font-bold transition ${
+                            selected
+                              ? "border-blue-600 bg-blue-600 text-white"
+                              : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                          }`}
                         >
                           {option.label}
                         </button>
@@ -1808,10 +1800,11 @@ export function DashboardPage() {
             >
               <div className="grid gap-5">
                 <div
-                  className={`rounded-2xl border p-4 ${confirmModal?.tone === "warning"
-                    ? "border-amber-200 bg-amber-50 text-amber-900"
-                    : "border-red-200 bg-red-50 text-red-900"
-                    }`}
+                  className={`rounded-2xl border p-4 ${
+                    confirmModal?.tone === "warning"
+                      ? "border-amber-200 bg-amber-50 text-amber-900"
+                      : "border-red-200 bg-red-50 text-red-900"
+                  }`}
                 >
                   <p className="text-sm font-semibold">
                     Essa ação não pode ser desfeita. Deseja realmente continuar?

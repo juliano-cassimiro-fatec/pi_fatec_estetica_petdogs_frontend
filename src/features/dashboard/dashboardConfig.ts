@@ -171,4 +171,3 @@ export function getDashboardMode(role?: Role) {
     description: "Gerencie clientes, pets, serviços, profissionais e agenda.",
   };
 }
-

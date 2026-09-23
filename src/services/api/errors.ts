@@ -46,9 +46,10 @@ export function getApiError(error: unknown): ApiError {
     return {
       status: 0,
       code: "NETWORK_ERROR",
-      message: error instanceof Error && error.message
-        ? error.message
-        : "Não foi possível concluir a solicitação.",
+      message:
+        error instanceof Error && error.message
+          ? error.message
+          : "Não foi possível concluir a solicitação.",
       retryAfter: null,
     };
   }

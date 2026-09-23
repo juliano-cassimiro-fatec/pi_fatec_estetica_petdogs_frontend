@@ -78,8 +78,6 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
         <div className="w-full rounded-3xl bg-white p-7 shadow-sm sm:p-9">
           {/* Logo / Nome */}
           <div className="mb-8 text-center">
-
-
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Estética PetDogs</h1>
 
             <p className="mt-2 text-sm text-slate-500">{description}</p>

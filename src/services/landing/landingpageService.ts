@@ -1,10 +1,6 @@
 import apiClient from "../api/client";
 import type { Service } from "../../features/shared/types";
-import type {
-  LandingPageData,
-  LandingPageRepository,
-  LandingService,
-} from "./types";
+import type { LandingPageData, LandingPageRepository, LandingService } from "./types";
 
 const defaultServices: LandingService[] = [
   {
@@ -22,15 +18,11 @@ const defaultServices: LandingService[] = [
   {
     id: "default-banho-tosa",
     name: "Banho + Tosa",
-    description:
-      "Cuidado completo para deixar seu pet limpo, confortável e com o visual renovado.",
+    description: "Cuidado completo para deixar seu pet limpo, confortável e com o visual renovado.",
   },
 ];
 
-function getStringValue(
-  object: Record<string, unknown>,
-  keys: string[],
-): string | undefined {
+function getStringValue(object: Record<string, unknown>, keys: string[]): string | undefined {
   for (const key of keys) {
     const value = object[key];
 
@@ -78,41 +70,20 @@ function formatDuration(value?: string): string | undefined {
   return `${number} min`;
 }
 
-function mapServiceToLanding(
-  service: Service,
-  index: number,
-): LandingService {
+function mapServiceToLanding(service: Service, index: number): LandingService {
   const raw = service as unknown as Record<string, unknown>;
 
-  const id =
-    getStringValue(raw, ["_id", "id"]) ??
-    `service-${index}`;
+  const id = getStringValue(raw, ["_id", "id"]) ?? `service-${index}`;
 
-  const name =
-    getStringValue(raw, ["name", "nome", "title", "titulo"]) ??
-    "Serviço";
+  const name = getStringValue(raw, ["name", "nome", "title", "titulo"]) ?? "Serviço";
 
   const description =
-    getStringValue(raw, [
-      "description",
-      "descricao",
-      "details",
-      "detalhes",
-    ]) ??
+    getStringValue(raw, ["description", "descricao", "details", "detalhes"]) ??
     "Cuidado profissional para o seu pet.";
 
-  const rawPrice = getStringValue(raw, [
-    "price",
-    "preco",
-    "valor",
-  ]);
+  const rawPrice = getStringValue(raw, ["price", "preco", "valor"]);
 
-  const rawDuration = getStringValue(raw, [
-    "duration",
-    "duracao",
-    "durationMinutes",
-    "tempo",
-  ]);
+  const rawDuration = getStringValue(raw, ["duration", "duracao", "durationMinutes", "tempo"]);
 
   return {
     id,
@@ -130,9 +101,7 @@ export const axiosLandingPageRepository: LandingPageRepository = {
   },
 };
 
-export function createLandingPageService(
-  repository: LandingPageRepository,
-) {
+export function createLandingPageService(repository: LandingPageRepository) {
   return {
     async loadLandingPage(): Promise<LandingPageData> {
       try {
@@ -164,6 +133,4 @@ export function createLandingPageService(
   };
 }
 
-export const landingPageService = createLandingPageService(
-  axiosLandingPageRepository,
-);
+export const landingPageService = createLandingPageService(axiosLandingPageRepository);
