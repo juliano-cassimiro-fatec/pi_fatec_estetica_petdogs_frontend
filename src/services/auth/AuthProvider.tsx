@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import type { AuthUser, LoginCredentials, RegisterCustomerData } from "../../features/shared/types";
+import type {
+  AuthUser,
+  LoginCredentials,
+  RegisterCustomerData,
+  ForgotPasswordData,
+  VerifyResetCodeData,
+  ResetPasswordData,
+} from "../../features/shared/types";
 import { authService } from "./authService";
 import { AuthContext, type AuthStatus } from "./authContext";
 
@@ -52,8 +59,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(session.user);
     setStatus("authenticated");
   }
+
+  function forgotPassword(data: ForgotPasswordData) {
+    return authService.forgotPassword(data);
+  }
+
+  function verifyResetCode(data: VerifyResetCodeData) {
+    return authService.verifyResetCode(data);
+  }
+
+  function resetPassword(data: ResetPasswordData) {
+    return authService.resetPassword(data);
+  }
+
   return (
-    <AuthContext.Provider value={{ user, status, signIn, register, signOut, refreshUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        status,
+        signIn,
+        register,
+        signOut,
+        refreshUser,
+        forgotPassword,
+        verifyResetCode,
+        resetPassword,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

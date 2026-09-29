@@ -107,7 +107,7 @@ export function createLandingPageService(repository: LandingPageRepository) {
       try {
         const services = await repository.listServices();
 
-        if (!services || services.length === 0) {
+        if (services.length === 0) {
           return {
             services: defaultServices,
             source: "fallback",

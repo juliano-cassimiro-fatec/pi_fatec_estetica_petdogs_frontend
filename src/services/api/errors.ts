@@ -1,12 +1,22 @@
 import axios from "axios";
 
-interface ApiErrorBody {
-  message?: string;
-  code?: string;
-  errors?: Record<string, string | string[]>;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-const codeMessages: Record<string, string> = {
+function getValidationMessage(errors: unknown) {
+  if (!isRecord(errors)) return undefined;
+
+  for (const fieldErrors of Object.values(errors)) {
+    const messages = Array.isArray(fieldErrors) ? fieldErrors : [fieldErrors];
+    const message = messages.find((value): value is string => typeof value === "string");
+    if (message) return message;
+  }
+
+  return undefined;
+}
+
+const codeMessages: Partial<Record<string, string>> = {
   CONFLICT: "Este registro não pode ser removido porque possui agendamentos ou dependências.",
   NOT_FOUND: "O registro não foi encontrado.",
   VALIDATION_ERROR: "Existem dados inválidos no formulário.",
@@ -22,7 +32,7 @@ const codeMessages: Record<string, string> = {
   INTERNAL_ERROR: "Erro no servidor. Tente novamente mais tarde.",
 };
 
-const statusMessages: Record<number, string> = {
+const statusMessages: Partial<Record<number, string>> = {
   400: "Confira os dados informados.",
   401: "Sua sessão expirou. Entre novamente.",
   403: "Você não tem permissão para realizar esta ação.",
@@ -42,7 +52,7 @@ export interface ApiError {
 }
 
 export function getApiError(error: unknown): ApiError {
-  if (!axios.isAxiosError<ApiErrorBody>(error)) {
+  if (!axios.isAxiosError<unknown>(error)) {
     return {
       status: 0,
       code: "NETWORK_ERROR",
@@ -73,19 +83,21 @@ export function getApiError(error: unknown): ApiError {
   }
 
   const { status, headers, data } = error.response;
-  const body = data && typeof data === "object" ? data : {};
-  const responseData = body;
-  const validationMessage = Object.values(responseData.errors ?? {}).flat()[0];
-  const code = responseData.code ?? `HTTP_${status}`;
-  const retryAfter = headers["retry-after"] ?? null;
+  const responseData = isRecord(data) ? data : {};
+  const responseMessage =
+    typeof responseData.message === "string" ? responseData.message : undefined;
+  const validationMessage = getValidationMessage(responseData.errors);
+  const code = typeof responseData.code === "string" ? responseData.code : `HTTP_${status}`;
+  const retryAfterHeader: unknown = headers["retry-after"];
+  const retryAfter = typeof retryAfterHeader === "string" ? retryAfterHeader : null;
   const genericMessage =
-    responseData.message ??
+    responseMessage ??
     validationMessage ??
     codeMessages[code] ??
     statusMessages[status] ??
     "Não foi possível concluir a solicitação.";
   const message =
-    status === 429 && retryAfter && !responseData.message
+    status === 429 && retryAfter && !responseMessage
       ? `Muitas tentativas. Aguarde ${retryAfter} segundos e tente novamente.`
       : genericMessage;
 
@@ -97,8 +109,8 @@ export function getApiError(error: unknown): ApiError {
   };
 }
 
-export function presentRequestError(error: unknown, fallback?: string) {
-  return getApiError(error).message || fallback || "Não foi possível concluir a operação";
+export function presentRequestError(error: unknown) {
+  return getApiError(error).message;
 }
 
 export function isUnauthorizedError(error: unknown) {

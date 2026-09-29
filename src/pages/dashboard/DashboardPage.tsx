@@ -18,7 +18,7 @@ import Card from "../../components/ui/Card";
 import Icon from "../../components/ui/Icon";
 import Field from "../../components/ui/Field";
 import PasswordInput from "../../components/ui/PasswordInput";
-import PhotoPreview, { resolveImageUrl } from "../../components/ui/PhotoPreview";
+import PhotoPreview from "../../components/ui/PhotoPreview";
 import {
   buttonClass,
   dangerButtonClass,
@@ -40,7 +40,8 @@ import {
 } from "../../features/dashboard/dashboardConfig";
 import { can } from "../../features/dashboard/permissions";
 import { uploadImage } from "../../services/uploads/uploadService";
-import { showToast } from "../../components/ui/ToastProvider.tsx";
+import { resolveImageUrl } from "../../services/uploads/imageUrl";
+import { showToast } from "../../components/ui/toastEvents";
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -110,7 +111,7 @@ export function DashboardPage() {
   const logout = useCallback(() => {
     auth.signOut();
     setUser(null);
-    navigate("/login", { replace: true });
+    void navigate("/login", { replace: true });
   }, [auth, navigate]);
 
   const loadData = useCallback(async () => {
@@ -188,9 +189,9 @@ export function DashboardPage() {
       telefone: professional.telefone ?? "",
       foto: professional.foto ?? "",
       especialidade: professional.especialidade,
-      dias_trabalho: professional.dias_trabalho ?? [1, 2, 3, 4, 5],
-      horario_inicio: professional.horario_inicio ?? "08:00",
-      horario_fim: professional.horario_fim ?? "18:00",
+      dias_trabalho: professional.dias_trabalho,
+      horario_inicio: professional.horario_inicio,
+      horario_fim: professional.horario_fim,
       almoco_inicio: professional.almoco_inicio ?? "12:00",
       almoco_fim: professional.almoco_fim ?? "13:00",
     });
@@ -500,7 +501,7 @@ export function DashboardPage() {
                     >
                       <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-600">
                         <PhotoPreview
-                          src={user?.foto}
+                          src={user.foto}
                           alt="Foto do usuário"
                           className="h-8 w-8 rounded-full"
                         />
@@ -518,7 +519,7 @@ export function DashboardPage() {
                         description: "Você será desconectado da aplicação.",
                         confirmLabel: "Sair",
                         tone: "warning",
-                        onConfirm: async () => logout(),
+                        onConfirm: () => Promise.resolve(logout()),
                       })
                     }
                     className="inline-flex shrink-0 items-center justify-center rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"

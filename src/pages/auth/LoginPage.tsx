@@ -3,7 +3,7 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import PasswordInput from "../../components/ui/PasswordInput";
 import { presentRequestError } from "../../services/api/errors";
 import { useAuth } from "../../services/auth/useAuth";
-import { showToast } from "../../components/ui/ToastProvider.tsx";
+import { showToast } from "../../components/ui/toastEvents";
 
 type Mode = "login" | "register";
 
@@ -51,7 +51,7 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
           password,
         });
 
-        navigate("/app/dashboard");
+        void navigate("/app/dashboard");
         return;
       }
 
@@ -60,7 +60,7 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
         password,
       });
 
-      navigate("/app/dashboard");
+      void navigate("/app/dashboard");
     } catch (requestError) {
       setError(presentRequestError(requestError));
     } finally {
@@ -170,6 +170,17 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
               {loading ? "Aguarde..." : isRegister ? "Criar conta" : "Entrar"}
             </button>
           </form>
+
+          {!isRegister && (
+            <div className="mt-4 text-right text-sm">
+              <Link
+                className="font-semibold text-blue-600 hover:text-blue-700"
+                to="/forgot-password"
+              >
+                Esqueci minha senha
+              </Link>
+            </div>
+          )}
 
           {/* Alternar login/cadastro */}
           <div className="mt-6 text-center text-sm text-slate-500">

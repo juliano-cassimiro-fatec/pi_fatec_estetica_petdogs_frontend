@@ -27,7 +27,9 @@ export function LandingPage() {
       }
     }
 
-    loadLandingPage();
+    void loadLandingPage().catch(() => {
+      if (mounted) setServices([]);
+    });
 
     return () => {
       mounted = false;

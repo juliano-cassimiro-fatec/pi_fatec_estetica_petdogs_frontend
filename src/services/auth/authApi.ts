@@ -3,11 +3,18 @@ import type {
   AuthSession,
   LoginCredentials,
   RegisterCustomerData,
+  ForgotPasswordData,
+  VerifyResetCodeData,
+  ResetPasswordData,
 } from "../../features/shared/types";
 import apiClient from "../api/client";
 
 interface MeResponse {
   user: AuthSession["user"];
+}
+
+interface VerifyResetCodeResponse {
+  resetToken: string;
 }
 
 export const axiosAuthRepository: AuthRepository = {
@@ -24,5 +31,31 @@ export const axiosAuthRepository: AuthRepository = {
   async me() {
     const response = await apiClient.get<MeResponse>("/auth/me");
     return response.data.user;
+  },
+
+  async forgotPassword(data: ForgotPasswordData) {
+    await apiClient.post("/auth/forgot-password", data, {
+      skipAuth: true,
+      showGlobalError: false,
+    });
+  },
+
+  async verifyResetCode(data: VerifyResetCodeData) {
+    const response = await apiClient.post<VerifyResetCodeResponse>(
+      "/auth/verify-reset-code",
+      data,
+      {
+        skipAuth: true,
+        showGlobalError: false,
+      },
+    );
+    return response.data.resetToken;
+  },
+
+  async resetPassword(data: ResetPasswordData) {
+    await apiClient.post("/auth/reset-password", data, {
+      skipAuth: true,
+      showGlobalError: false,
+    });
   },
 };

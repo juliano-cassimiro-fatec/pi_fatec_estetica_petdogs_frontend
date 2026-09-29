@@ -1,11 +1,5 @@
 import Icon from "./Icon";
-
-export function resolveImageUrl(src: string) {
-  if (src.startsWith("http") || src.startsWith("data:")) return src;
-
-  const apiUrl = import.meta.env.VITE_API_URL ?? "/api/v1";
-  return `${apiUrl.replace(/\/api\/v1\/?$/, "")}${src}`;
-}
+import { resolveImageUrl } from "../../services/uploads/imageUrl";
 
 function PhotoPreview({
   src,

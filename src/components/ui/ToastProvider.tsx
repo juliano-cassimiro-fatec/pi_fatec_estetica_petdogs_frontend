@@ -1,21 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import { presentRequestError } from "../../services/api/errors";
-
-const toastEventName = "petdogs:toast";
-
-interface ToastDetail {
-  message: string;
-}
-
-interface ToastContextValue {
-  showToast: (message: string) => void;
-}
-
-const ToastContext = createContext<ToastContextValue | null>(null);
-
-export function showToast(message: string) {
-  window.dispatchEvent(new CustomEvent<ToastDetail>(toastEventName, { detail: { message } }));
-}
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { toastEventName, type ToastDetail } from "./toastEvents";
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState("");
@@ -25,7 +9,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     function handleToast(event: Event) {
       const detail = (event as CustomEvent<ToastDetail>).detail;
-      if (detail?.message) setMessage(detail.message);
+      if (detail.message) setMessage(detail.message);
     }
 
     window.addEventListener(toastEventName, handleToast);
@@ -39,7 +23,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, [dismiss, message]);
 
   return (
-    <ToastContext.Provider value={{ showToast }}>
+    <>
       {children}
       {message && (
         <div className="pointer-events-none fixed inset-x-4 top-4 z-[100] flex justify-center sm:inset-x-auto sm:right-6 sm:justify-end">
@@ -62,16 +46,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           </div>
         </div>
       )}
-    </ToastContext.Provider>
+    </>
   );
-}
-
-export function useToast() {
-  const context = useContext(ToastContext);
-  if (!context) throw new Error("useToast deve ser usado dentro de ToastProvider");
-  return context;
-}
-
-export function presentToastError(error: unknown) {
-  showToast(presentRequestError(error));
 }

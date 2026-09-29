@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { availabilityService } from "../../services/availability/availabilityService";
 import type {
   DayAvailability,
@@ -64,22 +64,20 @@ export function AvailabilityCalendar({
 }: CalendarProps) {
   const [month, setMonth] = useState(value.data_hora ? new Date(value.data_hora) : new Date());
 
-  const [selectedDate, setSelectedDate] = useState(value.data_hora?.slice(0, 10) || "");
+  const [selectedDate, setSelectedDate] = useState(value.data_hora.slice(0, 10) || "");
 
   const [days, setDays] = useState<DayAvailability[]>([]);
   const [slots, setSlots] = useState<SlotAvailability[]>([]);
-  const [loadingDays, setLoadingDays] = useState(false);
-  const [loadingSlots, setLoadingSlots] = useState(false);
-
-  const selectedService = services.find((service) => service._id === value.servico);
-
-  const selectedProfessional = professionals.find(
-    (professional) => professional._id === value.profissional,
-  );
+  const [loadingDays, startLoadingDays] = useTransition();
+  const [loadingSlots, startLoadingSlots] = useTransition();
 
   const ready = Boolean(value.profissional && value.servico);
 
-  const daysMap = useMemo(() => new Map(days.map((day) => [day.date, day])), [days]);
+  const daysMap = useMemo(
+    () => new Map((ready ? days : []).map((day) => [day.date, day])),
+    [days, ready],
+  );
+  const visibleSlots = ready && selectedDate ? slots : [];
 
   const calendarDays = useMemo(() => getDays(month), [month]);
 
@@ -89,67 +87,50 @@ export function AvailabilityCalendar({
   }).format(month);
 
   useEffect(() => {
-    if (!ready) {
-      setDays([]);
-      setSlots([]);
-      return;
-    }
+    if (!ready) return;
 
     let active = true;
 
-    setLoadingDays(true);
-
-    availabilityService
-      .getMonthAvailability({
-        profissionalId: value.profissional,
-        servicoId: value.servico,
-        month: monthKey(month),
-      })
-      .then((response) => {
+    startLoadingDays(async () => {
+      try {
+        const response = await availabilityService.getMonthAvailability({
+          profissionalId: value.profissional,
+          servicoId: value.servico,
+          month: monthKey(month),
+        });
         if (active) setDays(response);
-      })
-      .catch(() => {
+      } catch {
         if (active) setDays([]);
-      })
-      .finally(() => {
-        if (active) setLoadingDays(false);
-      });
+      }
+    });
 
     return () => {
       active = false;
     };
-  }, [month, value.profissional, value.servico, ready]);
+  }, [month, value.profissional, value.servico, ready, startLoadingDays]);
 
   useEffect(() => {
-    if (!ready || !selectedDate) {
-      setSlots([]);
-      return;
-    }
+    if (!ready || !selectedDate) return;
 
     let active = true;
 
-    setLoadingSlots(true);
-
-    availabilityService
-      .getDayAvailability({
-        profissionalId: value.profissional,
-        servicoId: value.servico,
-        date: selectedDate,
-      })
-      .then((response) => {
+    startLoadingSlots(async () => {
+      try {
+        const response = await availabilityService.getDayAvailability({
+          profissionalId: value.profissional,
+          servicoId: value.servico,
+          date: selectedDate,
+        });
         if (active) setSlots(response.slots);
-      })
-      .catch(() => {
+      } catch {
         if (active) setSlots([]);
-      })
-      .finally(() => {
-        if (active) setLoadingSlots(false);
-      });
+      }
+    });
 
     return () => {
       active = false;
     };
-  }, [selectedDate, value.profissional, value.servico, ready]);
+  }, [selectedDate, value.profissional, value.servico, ready, startLoadingSlots]);
 
   function selectProfessional(id: string) {
     setSelectedDate("");
@@ -358,14 +339,14 @@ export function AvailabilityCalendar({
                 </span>
               </div>
 
-              {!loadingSlots && slots.filter((slot) => slot.available).length === 0 && (
+              {!loadingSlots && visibleSlots.filter((slot) => slot.available).length === 0 && (
                 <p className="py-4 text-center text-sm text-slate-400">
                   Nenhum horário disponível.
                 </p>
               )}
 
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                {slots
+                {visibleSlots
                   .filter((slot) => slot.available)
                   .map((slot) => {
                     const selected = value.data_hora === slot.datetime.slice(0, 16);

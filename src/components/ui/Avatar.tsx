@@ -1,4 +1,4 @@
-import { resolveImageUrl } from "./PhotoPreview";
+import { resolveImageUrl } from "../../services/uploads/imageUrl";
 
 interface AvatarProps {
   src?: string;
