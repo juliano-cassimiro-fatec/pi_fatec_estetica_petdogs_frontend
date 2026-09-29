@@ -4,6 +4,8 @@ import type {
   AuthSession,
   LoginCredentials,
   RegisterCustomerData,
+  ForgotPasswordData,
+  ResetPasswordData,
 } from "../../features/shared/types";
 
 export function createAuthUseCases(repository: AuthRepository, storage: SessionStorage) {
@@ -30,6 +32,14 @@ export function createAuthUseCases(repository: AuthRepository, storage: SessionS
 
     signOut(): void {
       storage.clearSession();
+    },
+
+    forgotPassword(data: ForgotPasswordData): Promise<void> {
+      return repository.forgotPassword(data);
+    },
+
+    resetPassword(data: ResetPasswordData): Promise<void> {
+      return repository.resetPassword(data);
     },
   };
 }

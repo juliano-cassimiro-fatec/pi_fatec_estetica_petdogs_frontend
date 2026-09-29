@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import type { AuthUser, LoginCredentials, RegisterCustomerData } from "../../features/shared/types";
+import type {
+  AuthUser,
+  LoginCredentials,
+  RegisterCustomerData,
+  ForgotPasswordData,
+  ResetPasswordData,
+} from "../../features/shared/types";
 import { authService } from "./authService";
 import { AuthContext, type AuthStatus } from "./authContext";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const hasToken = authService.hasStoredToken();
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [status, setStatus] = useState<AuthStatus>(hasToken ? "checking" : "unauthenticated");
+  const [status, setStatus] = useState<AuthStatus>("checking");
 
   const signOut = useCallback(() => {
     authService.signOut();
@@ -26,15 +31,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [signOut]);
 
   useEffect(() => {
-    if (!hasToken) return;
-    void authService
-      .getCurrentUser()
-      .then((currentUser) => {
+    let active = true;
+
+    async function restoreSession() {
+      if (!authService.hasStoredToken()) {
+        if (active) setStatus("unauthenticated");
+        return;
+      }
+
+      try {
+        const currentUser = await authService.getCurrentUser();
+        if (!active) return;
         setUser(currentUser);
         setStatus("authenticated");
-      })
-      .catch(signOut);
-  }, [hasToken, signOut]);
+      } catch {
+        if (active) signOut();
+      }
+    }
+
+    void restoreSession();
+    return () => {
+      active = false;
+    };
+  }, [signOut]);
 
   useEffect(() => {
     window.addEventListener("petdogs:session-expired", signOut);
@@ -52,8 +71,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(session.user);
     setStatus("authenticated");
   }
+
+  function forgotPassword(data: ForgotPasswordData) {
+    return authService.forgotPassword(data);
+  }
+
+  function resetPassword(data: ResetPasswordData) {
+    return authService.resetPassword(data);
+  }
   return (
-    <AuthContext.Provider value={{ user, status, signIn, register, signOut, refreshUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        status,
+        signIn,
+        register,
+        signOut,
+        refreshUser,
+        forgotPassword,
+        resetPassword,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

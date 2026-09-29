@@ -71,12 +71,6 @@ export function AvailabilityCalendar({
   const [loadingDays, setLoadingDays] = useState(false);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
-  const selectedService = services.find((service) => service._id === value.servico);
-
-  const selectedProfessional = professionals.find(
-    (professional) => professional._id === value.profissional,
-  );
-
   const ready = Boolean(value.profissional && value.servico);
 
   const daysMap = useMemo(() => new Map(days.map((day) => [day.date, day])), [days]);
@@ -90,13 +84,17 @@ export function AvailabilityCalendar({
 
   useEffect(() => {
     if (!ready) {
-      setDays([]);
-      setSlots([]);
-      return;
+      const timeout = window.setTimeout(() => {
+        setDays([]);
+        setSlots([]);
+      }, 0);
+      return () => window.clearTimeout(timeout);
     }
 
     let active = true;
 
+    // The request starts after render; keep the loading indicator in sync with it.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadingDays(true);
 
     availabilityService
@@ -122,12 +120,14 @@ export function AvailabilityCalendar({
 
   useEffect(() => {
     if (!ready || !selectedDate) {
-      setSlots([]);
-      return;
+      const timeout = window.setTimeout(() => setSlots([]), 0);
+      return () => window.clearTimeout(timeout);
     }
 
     let active = true;
 
+    // The request starts after render; keep the loading indicator in sync with it.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadingSlots(true);
 
     availabilityService

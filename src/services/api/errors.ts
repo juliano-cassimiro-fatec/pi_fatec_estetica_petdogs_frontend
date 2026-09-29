@@ -73,11 +73,13 @@ export function getApiError(error: unknown): ApiError {
   }
 
   const { status, headers, data } = error.response;
-  const body = data && typeof data === "object" ? data : {};
-  const responseData = body;
+  const responseData: ApiErrorBody = data && typeof data === "object" ? (data as ApiErrorBody) : {};
   const validationMessage = Object.values(responseData.errors ?? {}).flat()[0];
   const code = responseData.code ?? `HTTP_${status}`;
-  const retryAfter = headers["retry-after"] ?? null;
+  // Axios exposes response headers as a permissive external object.
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const retryAfterHeader = headers["retry-after"];
+  const retryAfter = typeof retryAfterHeader === "string" ? retryAfterHeader : null;
   const genericMessage =
     responseData.message ??
     validationMessage ??
