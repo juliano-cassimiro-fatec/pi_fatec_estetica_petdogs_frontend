@@ -24,6 +24,15 @@ export interface RegisterCustomerData {
   password: string;
 }
 
+export interface ForgotPasswordData {
+  email: string;
+}
+
+export interface ResetPasswordData {
+  token: string;
+  password: string;
+}
+
 export interface Customer {
   _id: string;
   name: string;

@@ -110,7 +110,7 @@ export function DashboardPage() {
   const logout = useCallback(() => {
     auth.signOut();
     setUser(null);
-    navigate("/login", { replace: true });
+    void navigate("/login", { replace: true });
   }, [auth, navigate]);
 
   const loadData = useCallback(async () => {
@@ -518,7 +518,10 @@ export function DashboardPage() {
                         description: "Você será desconectado da aplicação.",
                         confirmLabel: "Sair",
                         tone: "warning",
-                        onConfirm: async () => logout(),
+                        onConfirm: () => {
+                          logout();
+                          return Promise.resolve();
+                        },
                       })
                     }
                     className="inline-flex shrink-0 items-center justify-center rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"

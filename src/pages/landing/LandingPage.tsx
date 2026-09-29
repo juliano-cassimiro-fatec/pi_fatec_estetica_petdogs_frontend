@@ -27,7 +27,7 @@ export function LandingPage() {
       }
     }
 
-    loadLandingPage();
+    void loadLandingPage();
 
     return () => {
       mounted = false;

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import PasswordInput from "../../components/ui/PasswordInput";
 import { presentRequestError } from "../../services/api/errors";
 import { useAuth } from "../../services/auth/useAuth";
@@ -13,6 +13,7 @@ interface LoginPageProps {
 
 export function LoginPage({ mode = "login" }: LoginPageProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const auth = useAuth();
   const { status } = auth;
 
@@ -24,6 +25,7 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
   const [error, setError] = useState("");
 
   const isRegister = mode === "register";
+  const destination = (location.state as { from?: string } | null)?.from ?? "/app/dashboard";
 
   const title = isRegister ? "Criar sua conta" : "Bem-vindo de volta";
   const description = isRegister
@@ -51,7 +53,7 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
           password,
         });
 
-        navigate("/app/dashboard");
+        void navigate(destination, { replace: true });
         return;
       }
 
@@ -60,12 +62,16 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
         password,
       });
 
-      navigate("/app/dashboard");
+      void navigate(destination, { replace: true });
     } catch (requestError) {
       setError(presentRequestError(requestError));
     } finally {
       setLoading(false);
     }
+  }
+
+  if (status === "checking") {
+    return null;
   }
 
   if (status === "authenticated") {
@@ -108,6 +114,7 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                   required
+                  autoComplete="name"
                 />
               </label>
             )}
@@ -118,11 +125,12 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
               <input
                 className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 type="email"
-                maxLength={20}
+                maxLength={254}
                 placeholder="seuemail@email.com"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 required
+                autoComplete="email"
               />
             </label>
 
@@ -135,6 +143,7 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 required
+                autoComplete={isRegister ? "new-password" : "current-password"}
               />
             </label>
 
@@ -150,6 +159,7 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
                   required
+                  autoComplete="new-password"
                 />
               </label>
             )}
@@ -170,6 +180,17 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
               {loading ? "Aguarde..." : isRegister ? "Criar conta" : "Entrar"}
             </button>
           </form>
+
+          {!isRegister && (
+            <div className="mt-4 text-right text-sm">
+              <Link
+                className="font-semibold text-blue-600 hover:text-blue-700"
+                to="/forgot-password"
+              >
+                Esqueci minha senha
+              </Link>
+            </div>
+          )}
 
           {/* Alternar login/cadastro */}
           <div className="mt-6 text-center text-sm text-slate-500">

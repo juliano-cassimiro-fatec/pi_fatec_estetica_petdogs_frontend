@@ -1,6 +1,13 @@
-import axios from "axios";
+import axios, { type AxiosError } from "axios";
 import { browserSessionStorage } from "../session/browserSession";
 import { getApiError } from "./errors";
+
+declare module "axios" {
+  export interface AxiosRequestConfig {
+    skipAuth?: boolean;
+    showGlobalError?: boolean;
+  }
+}
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? "/api/v1",
@@ -8,6 +15,7 @@ const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
+  if (config.skipAuth) return config;
   const token = browserSessionStorage.getToken();
 
   if (token) {
@@ -21,17 +29,20 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     const apiError = getApiError(error);
-    window.dispatchEvent(
-      new CustomEvent("petdogs:toast", {
-        detail: { message: apiError.message, code: apiError.code },
-      }),
-    );
-    if (error?.response?.status === 401) {
+    const axiosError = error as AxiosError<unknown, unknown>;
+    if (axiosError.config?.showGlobalError !== false) {
+      window.dispatchEvent(
+        new CustomEvent("petdogs:toast", {
+          detail: { message: apiError.message, code: apiError.code },
+        }),
+      );
+    }
+    if (axiosError.response?.status === 401) {
       browserSessionStorage.clearSession();
       window.dispatchEvent(new Event("petdogs:session-expired"));
     }
 
-    return Promise.reject(error);
+    return Promise.reject(error instanceof Error ? error : new Error(apiError.message));
   },
 );
 
