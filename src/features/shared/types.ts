@@ -6,6 +6,7 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   foto?: string;
+  mustChangePassword?: boolean;
 }
 
 export interface AuthSession {
@@ -35,6 +36,10 @@ export interface VerifyResetCodeData {
 
 export interface ResetPasswordData {
   resetToken: string;
+  password: string;
+}
+
+export interface ChangePasswordData {
   password: string;
 }
 

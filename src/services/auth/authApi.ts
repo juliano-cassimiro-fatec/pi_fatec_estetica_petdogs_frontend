@@ -6,6 +6,7 @@ import type {
   ForgotPasswordData,
   VerifyResetCodeData,
   ResetPasswordData,
+  ChangePasswordData,
 } from "../../features/shared/types";
 import apiClient from "../api/client";
 
@@ -31,6 +32,11 @@ export const axiosAuthRepository: AuthRepository = {
   async me() {
     const response = await apiClient.get<MeResponse>("/auth/me");
     return response.data.user;
+  },
+
+  async changePassword(data: ChangePasswordData) {
+    const response = await apiClient.post<AuthSession>("/auth/change-password", data);
+    return response.data;
   },
 
   async forgotPassword(data: ForgotPasswordData) {

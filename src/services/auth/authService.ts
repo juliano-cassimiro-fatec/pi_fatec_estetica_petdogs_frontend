@@ -7,6 +7,7 @@ import type {
   ForgotPasswordData,
   VerifyResetCodeData,
   ResetPasswordData,
+  ChangePasswordData,
 } from "../../features/shared/types";
 
 export function createAuthUseCases(repository: AuthRepository, storage: SessionStorage) {
@@ -17,6 +18,12 @@ export function createAuthUseCases(repository: AuthRepository, storage: SessionS
 
     getCurrentUser() {
       return repository.me();
+    },
+
+    async changePassword(data: ChangePasswordData): Promise<AuthSession> {
+      const session = await repository.changePassword(data);
+      storage.saveSession(session);
+      return session;
     },
 
     async signIn(credentials: LoginCredentials): Promise<AuthSession> {

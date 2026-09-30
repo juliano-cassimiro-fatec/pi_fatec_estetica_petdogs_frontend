@@ -55,12 +55,14 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
         return;
       }
 
-      await auth.signIn({
+      const user = await auth.signIn({
         email: email.trim(),
         password,
       });
 
-      void navigate("/app/dashboard");
+      void navigate(user.mustChangePassword ? "/change-password" : "/app/dashboard", {
+        replace: true,
+      });
     } catch (requestError) {
       setError(presentRequestError(requestError));
     } finally {
@@ -69,7 +71,12 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
   }
 
   if (status === "authenticated") {
-    return <Navigate to="/app/dashboard" replace />;
+    return (
+      <Navigate
+        to={auth.user?.mustChangePassword ? "/change-password" : "/app/dashboard"}
+        replace
+      />
+    );
   }
 
   return (
