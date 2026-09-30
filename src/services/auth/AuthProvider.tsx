@@ -6,19 +6,28 @@ import type {
   ForgotPasswordData,
   VerifyResetCodeData,
   ResetPasswordData,
+  ChangePasswordData,
 } from "../../features/shared/types";
 import { authService } from "./authService";
 import { AuthContext, type AuthStatus } from "./authContext";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const hasToken = authService.hasStoredToken();
+  const [hasInitialToken] = useState(() => authService.hasStoredToken());
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [status, setStatus] = useState<AuthStatus>(hasToken ? "checking" : "unauthenticated");
+  const [status, setStatus] = useState<AuthStatus>(
+    hasInitialToken ? "checking" : "unauthenticated",
+  );
 
   const signOut = useCallback(() => {
     authService.signOut();
     setUser(null);
     setStatus("unauthenticated");
+  }, []);
+
+  const requirePasswordChange = useCallback(() => {
+    setUser((currentUser) =>
+      currentUser ? { ...currentUser, mustChangePassword: true } : currentUser,
+    );
   }, []);
 
   const refreshUser = useCallback(async () => {
@@ -33,25 +42,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [signOut]);
 
   useEffect(() => {
-    if (!hasToken) return;
+    if (!hasInitialToken) return;
+
+    let active = true;
     void authService
       .getCurrentUser()
       .then((currentUser) => {
+        if (!active) return;
         setUser(currentUser);
         setStatus("authenticated");
       })
-      .catch(signOut);
-  }, [hasToken, signOut]);
+      .catch(() => {
+        if (active) signOut();
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [hasInitialToken, signOut]);
 
   useEffect(() => {
     window.addEventListener("petdogs:session-expired", signOut);
     return () => window.removeEventListener("petdogs:session-expired", signOut);
   }, [signOut]);
 
-  async function signIn(credentials: LoginCredentials) {
+  useEffect(() => {
+    window.addEventListener("petdogs:password-change-required", requirePasswordChange);
+    return () =>
+      window.removeEventListener("petdogs:password-change-required", requirePasswordChange);
+  }, [requirePasswordChange]);
+
+  async function signIn(credentials: LoginCredentials): Promise<AuthUser> {
     const session = await authService.signIn(credentials);
     setUser(session.user);
     setStatus("authenticated");
+    return session.user;
   }
 
   async function register(data: RegisterCustomerData) {
@@ -72,6 +97,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return authService.resetPassword(data);
   }
 
+  async function changePassword(data: ChangePasswordData) {
+    const session = await authService.changePassword(data);
+    setUser(session.user);
+    setStatus("authenticated");
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -84,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         forgotPassword,
         verifyResetCode,
         resetPassword,
+        changePassword,
       }}
     >
       {children}

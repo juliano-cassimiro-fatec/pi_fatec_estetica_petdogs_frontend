@@ -32,7 +32,11 @@ apiClient.interceptors.response.use(
   (error) => {
     const axiosError = axios.isAxiosError(error) ? error : null;
     const apiError = getApiError(error);
-    if (axiosError?.config?.showGlobalError !== false) {
+    const passwordChangeRequired = apiError.code === "PASSWORD_CHANGE_REQUIRED";
+
+    if (passwordChangeRequired) {
+      window.dispatchEvent(new Event("petdogs:password-change-required"));
+    } else if (axiosError?.config?.showGlobalError !== false) {
       window.dispatchEvent(
         new CustomEvent("petdogs:toast", {
           detail: { message: apiError.message, code: apiError.code },
