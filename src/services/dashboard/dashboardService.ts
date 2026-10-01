@@ -91,6 +91,10 @@ export const axiosDashboardRepository: DashboardRepository = {
     await apiClient.post("/agendamentos", payload);
   },
 
+  async confirmSchedule(id) {
+    await apiClient.put(`/agendamentos/${id}`, { status: "confirmado" });
+  },
+
   async updateCustomerProfile(payload) {
     await apiClient.put("/clientes/me", payload);
   },
@@ -151,6 +155,7 @@ export function createDashboardService(repository: DashboardRepository) {
     saveProfessional: repository.saveProfessional.bind(repository),
     saveCustomer: repository.saveCustomer.bind(repository),
     saveSchedule: repository.saveSchedule.bind(repository),
+    confirmSchedule: repository.confirmSchedule.bind(repository),
     updateProfile(role: AuthUser["role"], payload: ProfileFormState) {
       if (role === "profissional") {
         return repository.updateProfessionalProfile({

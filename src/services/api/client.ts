@@ -1,6 +1,6 @@
 import axios from "axios";
 import { browserSessionStorage } from "../session/browserSession";
-import { getApiError } from "./errors";
+import { ApiRequestError, getApiError } from "./errors";
 
 declare module "axios" {
   export interface AxiosRequestConfig {
@@ -36,7 +36,10 @@ apiClient.interceptors.response.use(
 
     if (passwordChangeRequired) {
       window.dispatchEvent(new Event("petdogs:password-change-required"));
-    } else if (axiosError?.config?.showGlobalError !== false) {
+    } else if (
+      apiError.code !== "EMAIL_VERIFICATION_REQUIRED" &&
+      axiosError?.config?.showGlobalError !== false
+    ) {
       window.dispatchEvent(
         new CustomEvent("petdogs:toast", {
           detail: { message: apiError.message, code: apiError.code },
@@ -48,7 +51,7 @@ apiClient.interceptors.response.use(
       window.dispatchEvent(new Event("petdogs:session-expired"));
     }
 
-    return Promise.reject(error instanceof Error ? error : new Error(apiError.message));
+    return Promise.reject(new ApiRequestError(apiError));
   },
 );
 

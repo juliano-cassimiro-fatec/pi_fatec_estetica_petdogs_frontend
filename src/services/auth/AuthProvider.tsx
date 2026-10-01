@@ -3,6 +3,8 @@ import type {
   AuthUser,
   LoginCredentials,
   RegisterCustomerData,
+  VerifyEmailData,
+  ResendEmailVerificationData,
   ForgotPasswordData,
   VerifyResetCodeData,
   ResetPasswordData,
@@ -79,10 +81,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return session.user;
   }
 
-  async function register(data: RegisterCustomerData) {
-    const session = await authService.registerCustomer(data);
+  function register(data: RegisterCustomerData) {
+    return authService.registerCustomer(data);
+  }
+
+  async function verifyEmail(data: VerifyEmailData): Promise<AuthUser> {
+    const session = await authService.verifyEmail(data);
     setUser(session.user);
     setStatus("authenticated");
+    return session.user;
+  }
+
+  function resendEmailVerification(data: ResendEmailVerificationData) {
+    return authService.resendEmailVerification(data);
   }
 
   function forgotPassword(data: ForgotPasswordData) {
@@ -110,6 +121,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         status,
         signIn,
         register,
+        verifyEmail,
+        resendEmailVerification,
         signOut,
         refreshUser,
         forgotPassword,

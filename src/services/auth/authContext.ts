@@ -3,6 +3,9 @@ import type {
   AuthUser,
   LoginCredentials,
   RegisterCustomerData,
+  RegisterCustomerResponse,
+  VerifyEmailData,
+  ResendEmailVerificationData,
   ForgotPasswordData,
   VerifyResetCodeData,
   ResetPasswordData,
@@ -15,7 +18,9 @@ export interface AuthContextValue {
   user: AuthUser | null;
   status: AuthStatus;
   signIn(credentials: LoginCredentials): Promise<AuthUser>;
-  register(data: RegisterCustomerData): Promise<void>;
+  register(data: RegisterCustomerData): Promise<RegisterCustomerResponse>;
+  verifyEmail(data: VerifyEmailData): Promise<AuthUser>;
+  resendEmailVerification(data: ResendEmailVerificationData): Promise<void>;
   signOut(): void;
   refreshUser(): Promise<void>;
   forgotPassword(data: ForgotPasswordData): Promise<void>;

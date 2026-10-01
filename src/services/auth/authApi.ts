@@ -3,6 +3,9 @@ import type {
   AuthSession,
   LoginCredentials,
   RegisterCustomerData,
+  RegisterCustomerResponse,
+  VerifyEmailData,
+  ResendEmailVerificationData,
   ForgotPasswordData,
   VerifyResetCodeData,
   ResetPasswordData,
@@ -25,8 +28,26 @@ export const axiosAuthRepository: AuthRepository = {
   },
 
   async registerCustomer(data: RegisterCustomerData) {
-    const response = await apiClient.post<AuthSession>("/auth/register", data);
+    const response = await apiClient.post<RegisterCustomerResponse>("/auth/register", data, {
+      skipAuth: true,
+      showGlobalError: false,
+    });
     return response.data;
+  },
+
+  async verifyEmail(data: VerifyEmailData) {
+    const response = await apiClient.post<AuthSession>("/auth/verify-email", data, {
+      skipAuth: true,
+      showGlobalError: false,
+    });
+    return response.data;
+  },
+
+  async resendEmailVerification(data: ResendEmailVerificationData) {
+    await apiClient.post("/auth/resend-email-verification", data, {
+      skipAuth: true,
+      showGlobalError: false,
+    });
   },
 
   async me() {

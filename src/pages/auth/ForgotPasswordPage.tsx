@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import PasswordInput from "../../components/ui/PasswordInput";
 import { presentRequestError } from "../../services/api/errors";
 import { useAuth } from "../../services/auth/useAuth";
+import { LegalLinks } from "../../components/ui/LegalLinks";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const minimumPasswordLength = 6;
@@ -287,6 +288,7 @@ export function ForgotPasswordPage() {
               </Link>
             </div>
           )}
+          <LegalLinks className="mt-5 justify-center border-t border-slate-100 pt-4" />
         </div>
       </div>
     </main>

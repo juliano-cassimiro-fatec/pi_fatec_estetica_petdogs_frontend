@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import PasswordInput from "../../components/ui/PasswordInput";
 import { presentRequestError } from "../../services/api/errors";
 import { useAuth } from "../../services/auth/useAuth";
+import { LegalLinks } from "../../components/ui/LegalLinks";
 
 const minimumPasswordLength = 8;
 
@@ -100,6 +101,7 @@ export function ChangePasswordPage() {
               {loading ? "Salvando..." : "Criar nova senha"}
             </button>
           </form>
+          <LegalLinks className="mt-5 justify-center border-t border-slate-100 pt-4" />
         </section>
       </div>
     </main>

@@ -23,6 +23,21 @@ export interface RegisterCustomerData {
   name: string;
   email: string;
   password: string;
+  telefone?: string;
+}
+
+export interface RegisterCustomerResponse {
+  email: string;
+  requiresEmailVerification: boolean;
+}
+
+export interface VerifyEmailData {
+  email: string;
+  code: string;
+}
+
+export interface ResendEmailVerificationData {
+  email: string;
 }
 
 export interface ForgotPasswordData {

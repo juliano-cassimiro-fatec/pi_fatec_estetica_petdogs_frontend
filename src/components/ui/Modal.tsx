@@ -4,11 +4,19 @@ interface ModalProps {
   open: boolean;
   title: string;
   description?: string;
+  size?: "default" | "compact";
   onClose: () => void;
   children: ReactNode;
 }
 
-export function Modal({ open, title, description, onClose, children }: ModalProps) {
+export function Modal({
+  open,
+  title,
+  description,
+  size = "default",
+  onClose,
+  children,
+}: ModalProps) {
   const titleId = useId();
   const descriptionId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -67,9 +75,11 @@ export function Modal({ open, title, description, onClose, children }: ModalProp
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         onKeyDown={handleKeyDown}
-        className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
+        className={`flex max-h-[92vh] w-full ${size === "compact" ? "max-w-2xl" : "max-w-5xl"} flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl`}
       >
-        <header className="flex items-start justify-between gap-4 border-b border-slate-200 bg-slate-50 px-6 py-5">
+        <header
+          className={`flex items-start justify-between gap-4 border-b border-slate-200 bg-slate-50 ${size === "compact" ? "px-5 py-4" : "px-6 py-5"}`}
+        >
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Janela de edição
@@ -96,7 +106,9 @@ export function Modal({ open, title, description, onClose, children }: ModalProp
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-6 py-6">{children}</div>
+        <div className={`flex-1 overflow-y-auto ${size === "compact" ? "px-5 py-4" : "px-6 py-6"}`}>
+          {children}
+        </div>
       </div>
     </div>
   );

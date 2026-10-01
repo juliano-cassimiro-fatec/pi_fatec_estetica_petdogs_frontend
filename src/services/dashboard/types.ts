@@ -45,6 +45,7 @@ export interface DashboardRepository {
   saveProfessional(payload: ProfessionalPayload, id?: string | null): Promise<void>;
   saveCustomer(payload: CustomerPayload, id?: string | null): Promise<void>;
   saveSchedule(payload: SchedulePayload, id?: string | null): Promise<void>;
+  confirmSchedule(id: string): Promise<void>;
   updateCustomerProfile(payload: CustomerProfilePayload): Promise<void>;
   updateProfessionalProfile(payload: ProfessionalProfilePayload): Promise<void>;
   remove(path: string): Promise<void>;

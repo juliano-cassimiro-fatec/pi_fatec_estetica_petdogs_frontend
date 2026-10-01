@@ -51,7 +51,19 @@ export interface ApiError {
   retryAfter: string | null;
 }
 
+export class ApiRequestError extends Error {
+  readonly details: ApiError;
+
+  constructor(details: ApiError) {
+    super(details.message);
+    this.details = details;
+    this.name = "ApiRequestError";
+  }
+}
+
 export function getApiError(error: unknown): ApiError {
+  if (error instanceof ApiRequestError) return error.details;
+
   if (!axios.isAxiosError<unknown>(error)) {
     return {
       status: 0,
@@ -114,5 +126,5 @@ export function presentRequestError(error: unknown) {
 }
 
 export function isUnauthorizedError(error: unknown) {
-  return axios.isAxiosError(error) && error.response?.status === 401;
+  return getApiError(error).status === 401;
 }

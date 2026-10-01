@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { AvailabilityCalendar } from "../../components/calendar/AvailabilityCalendar";
+import { ScheduleCalendar } from "../../components/calendar/ScheduleCalendar";
 import { Modal } from "../../components/ui/Modal";
 import type {
   AuthUser,
@@ -28,7 +29,6 @@ import {
   emptyServiceForm,
   formatPhone,
   formatCurrency,
-  getScheduleStatusPresentation,
   inputClass,
   onlyDigits,
   secondaryButtonClass,
@@ -121,6 +121,9 @@ export function DashboardPage() {
       const dashboardData = await dashboardService.loadDashboard();
       setUser(dashboardData.user);
       setPets(dashboardData.pets);
+      if (dashboardData.user.role === "cliente" && dashboardData.pets.length === 0) {
+        setActiveTab("pets");
+      }
       setServices(dashboardData.services);
       setProfessionals(dashboardData.professionals);
       setCustomers(dashboardData.customers);
@@ -246,7 +249,7 @@ export function DashboardPage() {
       animal: schedule.animal?._id ?? "",
       servico: schedule.servico?._id ?? "",
       profissional: schedule.profissional?._id ?? "",
-      data_hora: schedule.data_hora ? schedule.data_hora.slice(0, 16) : "",
+      data_hora: schedule.data_hora,
     });
     setActiveTab("agenda");
     setScheduleModalOpen(true);
@@ -416,6 +419,12 @@ export function DashboardPage() {
     }, "Agendamento cancelado");
   }
 
+  async function confirmSchedule(id: string) {
+    await submit(async () => {
+      await dashboardService.confirmSchedule(id);
+    }, "Agendamento confirmado");
+  }
+
   async function confirmDestructiveAction() {
     if (!confirmModal) return;
 
@@ -448,7 +457,7 @@ export function DashboardPage() {
                       key: "agenda",
                       label: "Agenda",
                       icon: "calendar",
-                      show: true,
+                      show: isAdmin || isProfessional || (isCustomer && pets.length > 0),
                     },
                     {
                       key: "pets",
@@ -550,123 +559,27 @@ export function DashboardPage() {
                           : "Visualize seus horários."
                     }
                   >
-                    <div className="mb-5 flex justify-end">
-                      <button
-                        className={buttonClass}
-                        type="button"
-                        onClick={openNewScheduleModal}
-                        disabled={
-                          pets.length === 0 || services.length === 0 || professionals.length === 0
-                        }
-                      >
-                        Novo agendamento
-                      </button>
-                    </div>
-
-                    <div className="grid gap-3">
-                      {schedules.map((schedule) => {
-                        const statusPresentation = getScheduleStatusPresentation(schedule.status);
-
-                        return (
-                          <article
-                            key={schedule._id}
-                            className={`rounded-2xl border bg-white p-4 transition hover:shadow-sm ${statusPresentation.border}`}
-                          >
-                            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                              <div>
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <h3 className="font-black text-slate-950">
-                                    {schedule.animal?.nome ?? "Pet"}
-                                  </h3>
-
-                                  <span className="text-slate-300">•</span>
-
-                                  <span className="text-sm font-bold text-blue-600">
-                                    {schedule.servico?.name ?? "Serviço"}
-                                  </span>
-                                </div>
-
-                                <p className="mt-1 text-sm text-slate-500">
-                                  Profissional: {schedule.profissional?.name ?? "Não informado"}
-                                </p>
-
-                                {isAdmin && (
-                                  <p className="text-sm text-slate-500">
-                                    Cliente: {schedule.cliente?.name ?? "Não informado"}
-                                  </p>
-                                )}
-
-                                <div className="mt-3 flex flex-wrap gap-2">
-                                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-                                    {new Date(schedule.data_hora).toLocaleString("pt-BR", {
-                                      day: "2-digit",
-                                      month: "2-digit",
-                                      year: "2-digit",
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })}
-                                  </span>
-
-                                  <span
-                                    className={`rounded-full px-3 py-1 text-xs font-bold ${statusPresentation.badge}`}
-                                  >
-                                    {statusPresentation.label}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="flex flex-wrap gap-2">
-                                {can(user.role, "schedule:edit") &&
-                                  schedule.status === "agendado" && (
-                                    <button
-                                      className={secondaryButtonClass}
-                                      type="button"
-                                      onClick={() => startEditSchedule(schedule)}
-                                      disabled={saving}
-                                    >
-                                      Editar
-                                    </button>
-                                  )}
-
-                                {can(user.role, "schedule:cancel") &&
-                                  schedule.status === "agendado" && (
-                                    <button
-                                      className={dangerButtonClass}
-                                      type="button"
-                                      onClick={() =>
-                                        openDeleteConfirm({
-                                          title: "Cancelar agendamento?",
-                                          description: "O agendamento será cancelado.",
-                                          confirmLabel: "Cancelar agendamento",
-                                          tone: "warning",
-                                          onConfirm: () => cancelSchedule(schedule._id),
-                                        })
-                                      }
-                                      disabled={saving}
-                                    >
-                                      Cancelar
-                                    </button>
-                                  )}
-                              </div>
-                            </div>
-                          </article>
-                        );
-                      })}
-
-                      {schedules.length === 0 && (
-                        <div className="rounded-2xl bg-slate-50 px-6 py-10 text-center">
-                          <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-white text-blue-600 shadow-sm">
-                            <Icon name="calendar" />
-                          </div>
-
-                          <p className="mt-3 font-bold text-slate-700">Nenhum agendamento</p>
-
-                          <p className="mt-1 text-sm text-slate-500">
-                            Os agendamentos aparecerão aqui.
-                          </p>
-                        </div>
-                      )}
-                    </div>
+                    <ScheduleCalendar
+                      schedules={schedules}
+                      isAdmin={isAdmin}
+                      canEdit={can(user.role, "schedule:edit")}
+                      canConfirm={can(user.role, "schedule:confirm")}
+                      canCancel={can(user.role, "schedule:cancel")}
+                      canCreate={pets.length > 0 && services.length > 0 && professionals.length > 0}
+                      disabled={saving}
+                      onCreate={openNewScheduleModal}
+                      onEdit={startEditSchedule}
+                      onConfirm={(schedule) => confirmSchedule(schedule._id)}
+                      onCancel={(schedule) =>
+                        openDeleteConfirm({
+                          title: "Cancelar agendamento?",
+                          description: `O atendimento de ${schedule.animal?.nome ?? "Pet"} será cancelado.`,
+                          confirmLabel: "Cancelar agendamento",
+                          tone: "warning",
+                          onConfirm: () => cancelSchedule(schedule._id),
+                        })
+                      }
+                    />
                   </Card>
                 </section>
               )}
@@ -1174,9 +1087,10 @@ export function DashboardPage() {
               open={scheduleModalOpen}
               title={editingScheduleId ? "Editar agendamento" : "Novo agendamento"}
               description="Escolha o pet, serviço, profissional e horário."
+              size="compact"
               onClose={closeScheduleModal}
             >
-              <form className="grid gap-5" onSubmit={handleScheduleSubmit}>
+              <form className="grid gap-4" onSubmit={handleScheduleSubmit}>
                 <Field label="Pet *">
                   <select
                     className={inputClass}
@@ -1272,7 +1186,7 @@ export function DashboardPage() {
                   </Field>
                 )}
 
-                <Field label="Nome *">
+                <Field label="Nome Do Pet *">
                   <input
                     className={inputClass}
                     maxLength={45}
@@ -1304,7 +1218,7 @@ export function DashboardPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Idade *">
                     <input
-                      className={inputClass}
+                      className="w-24 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                       min="0"
                       type="number"
                       value={petForm.idade}

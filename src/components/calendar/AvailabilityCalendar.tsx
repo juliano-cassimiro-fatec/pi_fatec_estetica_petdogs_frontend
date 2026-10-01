@@ -35,6 +35,33 @@ const monthKey = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 
 const dateKey = (date: Date) =>
   `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
+function parseCalendarDate(value: string) {
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (dateOnly) {
+    return new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]));
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? new Date() : date;
+}
+
+function localDateKeyFromValue(value: string) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : dateKey(date);
+}
+
+function isSameSlot(selectedValue: string, slotDatetime: string) {
+  if (!selectedValue) return false;
+
+  const selectedTime = new Date(selectedValue).getTime();
+  const slotTime = new Date(slotDatetime).getTime();
+  return Number.isFinite(selectedTime) && Number.isFinite(slotTime)
+    ? selectedTime === slotTime
+    : selectedValue === slotDatetime;
+}
+
 const addMonths = (date: Date, amount: number) =>
   new Date(date.getFullYear(), date.getMonth() + amount, 1);
 
@@ -62,9 +89,11 @@ export function AvailabilityCalendar({
   onChange,
   disabled = false,
 }: CalendarProps) {
-  const [month, setMonth] = useState(value.data_hora ? new Date(value.data_hora) : new Date());
+  const [month, setMonth] = useState(() =>
+    value.data_hora ? parseCalendarDate(value.data_hora) : new Date(),
+  );
 
-  const [selectedDate, setSelectedDate] = useState(value.data_hora.slice(0, 10) || "");
+  const [selectedDate, setSelectedDate] = useState(() => localDateKeyFromValue(value.data_hora));
 
   const [days, setDays] = useState<DayAvailability[]>([]);
   const [slots, setSlots] = useState<SlotAvailability[]>([]);
@@ -78,6 +107,7 @@ export function AvailabilityCalendar({
     [days, ready],
   );
   const visibleSlots = ready && selectedDate ? slots : [];
+  const availableSlots = visibleSlots.filter((slot) => slot.available);
 
   const calendarDays = useMemo(() => getDays(month), [month]);
 
@@ -171,113 +201,97 @@ export function AvailabilityCalendar({
 
     onChange({
       ...value,
-      data_hora: slot.datetime.slice(0, 16),
+      data_hora: slot.datetime,
     });
   }
 
   return (
     <div className="space-y-4">
-      {/* FILTROS */}
       <div className="grid gap-3 sm:grid-cols-2">
-        <select
-          value={value.profissional}
-          onChange={(e) => selectProfessional(e.target.value)}
-          disabled={disabled}
-          className="
-            h-11 w-full rounded-xl border border-slate-200
-            bg-white px-3 text-sm text-slate-700
-            outline-none transition
-            focus:border-blue-500 focus:ring-2 focus:ring-blue-100
-          "
-        >
-          <option value="">Profissional</option>
+        <label className="grid gap-1.5 text-xs font-semibold text-slate-600">
+          Profissional
+          <select
+            value={value.profissional}
+            onChange={(event) => selectProfessional(event.target.value)}
+            disabled={disabled}
+            className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50"
+          >
+            <option value="">Selecione</option>
+            {professionals.map((professional) => (
+              <option key={professional._id} value={professional._id}>
+                {professional.name}
+              </option>
+            ))}
+          </select>
+        </label>
 
-          {professionals.map((professional) => (
-            <option key={professional._id} value={professional._id}>
-              {professional.name}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={value.servico}
-          onChange={(e) => selectService(e.target.value)}
-          disabled={disabled}
-          className="
-            h-11 w-full rounded-xl border border-slate-200
-            bg-white px-3 text-sm text-slate-700
-            outline-none transition
-            focus:border-blue-500 focus:ring-2 focus:ring-blue-100
-          "
-        >
-          <option value="">Serviço</option>
-
-          {services.map((service) => (
-            <option key={service._id} value={service._id}>
-              {service.name} · {service.duracao_min} min
-            </option>
-          ))}
-        </select>
+        <label className="grid gap-1.5 text-xs font-semibold text-slate-600">
+          Serviço
+          <select
+            value={value.servico}
+            onChange={(event) => selectService(event.target.value)}
+            disabled={disabled}
+            className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50"
+          >
+            <option value="">Selecione</option>
+            {services.map((service) => (
+              <option key={service._id} value={service._id}>
+                {service.name} · {service.duracao_min} min
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {!ready && (
-        <p className="py-6 text-center text-sm text-slate-400">
-          Escolha um profissional e um serviço.
+        <p className="rounded-lg bg-slate-50 px-3 py-4 text-center text-sm text-slate-500">
+          Selecione profissional e serviço para consultar a agenda.
         </p>
       )}
 
       {ready && (
         <>
-          {/* CALENDÁRIO */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
-            <div className="mb-4 flex items-center justify-between">
+          <div className="mx-auto w-full max-w-sm">
+            <div className="mb-2 flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setMonth((current) => addMonths(current, -1))}
                 disabled={disabled || loadingDays}
-                className="
-                  flex h-8 w-8 items-center justify-center
-                  rounded-lg text-slate-500
-                  hover:bg-slate-100
-                  disabled:opacity-30
-                "
+                aria-label="Mês anterior"
+                className="flex h-10 w-10 items-center justify-center rounded-lg text-2xl leading-none text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 ←
               </button>
 
-              <span className="text-sm font-bold capitalize text-slate-800">{monthName}</span>
+              <div className="text-center">
+                <h3 className="text-sm font-semibold capitalize text-slate-900">{monthName}</h3>
+                <p className="text-xs text-slate-500" aria-live="polite">
+                  {loadingDays ? "Buscando disponibilidade..." : "Selecione uma data"}
+                </p>
+              </div>
 
               <button
                 type="button"
                 onClick={() => setMonth((current) => addMonths(current, 1))}
                 disabled={disabled || loadingDays}
-                className="
-                  flex h-8 w-8 items-center justify-center
-                  rounded-lg text-slate-500
-                  hover:bg-slate-100
-                  disabled:opacity-30
-                "
+                aria-label="Próximo mês"
+                className="flex h-10 w-10 items-center justify-center rounded-lg text-2xl leading-none text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 →
               </button>
             </div>
 
-            {/* SEMANA */}
-            <div className="mb-2 grid grid-cols-7">
-              {["D", "S", "T", "Q", "Q", "S", "S"].map((day, index) => (
+            <div className="grid grid-cols-7 text-center">
+              {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((day) => (
                 <span
-                  key={`${day}-${index}`}
-                  className="
-                      text-center text-[11px]
-                      font-semibold text-slate-400
-                    "
+                  key={day}
+                  className="py-1.5 text-[10px] font-semibold text-slate-400 sm:text-[11px]"
                 >
                   {day}
                 </span>
               ))}
             </div>
 
-            {/* DIAS */}
             <div className="grid grid-cols-7 gap-1">
               {calendarDays.map((date, index) => {
                 if (!date) {
@@ -286,10 +300,9 @@ export function AvailabilityCalendar({
 
                 const key = dateKey(date);
                 const info = daysMap.get(key);
-
-                const available = info?.workingDay && info.available;
-
+                const available = info?.available === true;
                 const selected = selectedDate === key;
+                const today = dateKey(new Date()) === key;
 
                 return (
                   <button
@@ -297,84 +310,69 @@ export function AvailabilityCalendar({
                     type="button"
                     onClick={() => selectDay(date)}
                     disabled={disabled || loadingDays || !available}
-                    className={`
-                      relative aspect-square
-                      rounded-lg text-sm font-semibold
-                      transition
-
-                      ${
-                        selected
-                          ? "bg-blue-600 text-white"
-                          : available
-                            ? "text-slate-700 hover:bg-blue-50 hover:text-blue-600"
-                            : "text-slate-300"
-                      }
-                    `}
+                    aria-label={date.toLocaleDateString("pt-BR", {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                    })}
+                    aria-pressed={selected}
+                    className={`relative flex aspect-square items-center justify-center rounded-lg text-sm transition ${
+                      selected
+                        ? "bg-blue-600 font-semibold text-white"
+                        : available
+                          ? "bg-blue-50 font-medium text-blue-700 hover:bg-blue-100"
+                          : "text-slate-300"
+                    } ${today && !selected ? "ring-1 ring-inset ring-slate-300" : ""}`}
                   >
                     {date.getDate()}
-
-                    {available && !selected && (
-                      <span
-                        className="
-                          absolute bottom-1 left-1/2
-                          h-1 w-1 -translate-x-1/2
-                          rounded-full bg-blue-500
-                        "
-                      />
-                    )}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* HORÁRIOS */}
           {selectedDate && (
-            <div>
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-sm font-semibold text-slate-700">Horários</span>
-
-                <span className="text-xs text-slate-400">
-                  {loadingSlots ? "Carregando..." : selectedDate}
+            <section className="border-t border-slate-100 pt-3" aria-live="polite">
+              <div className="mb-2 flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-slate-900">Horários disponíveis</h4>
+                <span className="text-xs text-slate-500">
+                  {loadingSlots
+                    ? "Carregando..."
+                    : new Date(`${selectedDate}T12:00:00`).toLocaleDateString("pt-BR", {
+                        day: "numeric",
+                        month: "long",
+                      })}
                 </span>
               </div>
 
-              {!loadingSlots && visibleSlots.filter((slot) => slot.available).length === 0 && (
-                <p className="py-4 text-center text-sm text-slate-400">
-                  Nenhum horário disponível.
+              {!loadingSlots && availableSlots.length === 0 && (
+                <p className="rounded-lg bg-slate-50 px-3 py-3 text-center text-sm text-slate-500">
+                  Nenhum horário disponível nesta data. Escolha outro dia.
                 </p>
               )}
 
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                {visibleSlots
-                  .filter((slot) => slot.available)
-                  .map((slot) => {
-                    const selected = value.data_hora === slot.datetime.slice(0, 16);
+                {availableSlots.map((slot) => {
+                  const selected = isSameSlot(value.data_hora, slot.datetime);
 
-                    return (
-                      <button
-                        key={slot.datetime}
-                        type="button"
-                        onClick={() => selectSlot(slot)}
-                        disabled={disabled}
-                        className={`
-                          h-11 rounded-xl border
-                          text-sm font-semibold
-                          transition
-
-                          ${
-                            selected
-                              ? "border-blue-600 bg-blue-600 text-white"
-                              : "border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50"
-                          }
-                        `}
-                      >
-                        {slot.time}
-                      </button>
-                    );
-                  })}
+                  return (
+                    <button
+                      key={slot.datetime}
+                      type="button"
+                      onClick={() => selectSlot(slot)}
+                      disabled={disabled}
+                      className={`h-10 rounded-lg border text-sm font-medium transition ${
+                        selected
+                          ? "border-blue-600 bg-blue-600 text-white"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50"
+                      }`}
+                    >
+                      {slot.time}
+                    </button>
+                  );
+                })}
               </div>
-            </div>
+            </section>
           )}
         </>
       )}

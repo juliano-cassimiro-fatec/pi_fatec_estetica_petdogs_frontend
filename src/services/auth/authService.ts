@@ -4,6 +4,9 @@ import type {
   AuthSession,
   LoginCredentials,
   RegisterCustomerData,
+  RegisterCustomerResponse,
+  VerifyEmailData,
+  ResendEmailVerificationData,
   ForgotPasswordData,
   VerifyResetCodeData,
   ResetPasswordData,
@@ -32,10 +35,18 @@ export function createAuthUseCases(repository: AuthRepository, storage: SessionS
       return session;
     },
 
-    async registerCustomer(data: RegisterCustomerData): Promise<AuthSession> {
-      const session = await repository.registerCustomer(data);
+    registerCustomer(data: RegisterCustomerData): Promise<RegisterCustomerResponse> {
+      return repository.registerCustomer(data);
+    },
+
+    async verifyEmail(data: VerifyEmailData): Promise<AuthSession> {
+      const session = await repository.verifyEmail(data);
       storage.saveSession(session);
       return session;
+    },
+
+    resendEmailVerification(data: ResendEmailVerificationData): Promise<void> {
+      return repository.resendEmailVerification(data);
     },
 
     signOut(): void {

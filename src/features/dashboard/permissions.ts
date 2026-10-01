@@ -3,6 +3,7 @@ import type { UserRole } from "../shared/types";
 export type Permission =
   | "schedule:create"
   | "schedule:edit"
+  | "schedule:confirm"
   | "schedule:cancel"
   | "service:manage"
   | "professional:manage"
@@ -12,6 +13,7 @@ export type Permission =
 const permissions: Record<UserRole, Permission[]> = {
   admin: [
     "schedule:edit",
+    "schedule:confirm",
     "schedule:cancel",
     "service:manage",
     "professional:manage",
@@ -19,7 +21,7 @@ const permissions: Record<UserRole, Permission[]> = {
     "pet:manage",
   ],
   cliente: ["schedule:create", "schedule:edit", "schedule:cancel", "pet:manage"],
-  profissional: [],
+  profissional: ["schedule:confirm"],
 };
 
 export function can(role: UserRole | undefined, permission: Permission) {

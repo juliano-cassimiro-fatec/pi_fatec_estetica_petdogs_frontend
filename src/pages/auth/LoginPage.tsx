@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import PasswordInput from "../../components/ui/PasswordInput";
-import { presentRequestError } from "../../services/api/errors";
+import { getApiError, presentRequestError } from "../../services/api/errors";
 import { useAuth } from "../../services/auth/useAuth";
 import { showToast } from "../../components/ui/toastEvents";
+import { LegalLinks } from "../../components/ui/LegalLinks";
 
 type Mode = "login" | "register";
 
@@ -17,9 +18,11 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
   const { status } = auth;
 
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -37,6 +40,11 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
 
     try {
       if (isRegister) {
+        if (!acceptedLegal) {
+          setError("Aceite os Termos de Uso e a Política de Privacidade para criar sua conta.");
+          return;
+        }
+
         if (password !== confirmPassword) {
           const message = "As senhas não coincidem.";
           setError(message);
@@ -45,13 +53,17 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
           return;
         }
 
-        await auth.register({
+        const registration = await auth.register({
           name: name.trim(),
           email: email.trim().toLowerCase(),
           password,
+          telefone: phone.trim() ? phone.replace(/\D/g, "") : undefined,
         });
 
-        void navigate("/app/dashboard");
+        void navigate("/verify-email", {
+          replace: true,
+          state: { email: registration.email },
+        });
         return;
       }
 
@@ -64,6 +76,21 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
         replace: true,
       });
     } catch (requestError) {
+      const apiError = getApiError(requestError);
+      if (isRegister && apiError.status === 409) {
+        void navigate("/verify-email", {
+          replace: true,
+          state: { email: email.trim().toLowerCase(), alreadyPending: true },
+        });
+        return;
+      }
+      if (!isRegister && apiError.code === "EMAIL_VERIFICATION_REQUIRED") {
+        void navigate("/verify-email", {
+          replace: true,
+          state: { email: email.trim().toLowerCase() },
+        });
+        return;
+      }
       setError(presentRequestError(requestError));
     } finally {
       setLoading(false);
@@ -119,6 +146,24 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
               </label>
             )}
 
+            {isRegister && (
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-medium text-slate-700">
+                  Telefone <span className="text-slate-400">(opcional)</span>
+                </span>
+                <input
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  maxLength={20}
+                  placeholder="(11) 99999-9999"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                />
+              </label>
+            )}
+
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-slate-700">E-mail</span>
 
@@ -159,6 +204,41 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
                   required
                 />
               </label>
+            )}
+
+            {isRegister && (
+              <div className="flex items-start gap-3">
+                <input
+                  id="accept-legal"
+                  aria-label="Aceito os Termos de Uso e a Política de Privacidade"
+                  className="mt-1 h-4 w-4 shrink-0 accent-blue-600"
+                  type="checkbox"
+                  checked={acceptedLegal}
+                  onChange={(event) => setAcceptedLegal(event.target.checked)}
+                  required
+                />
+                <p className="text-sm leading-6 text-slate-600">
+                  <label htmlFor="accept-legal">Li e aceito os </label>
+                  <Link
+                    className="font-semibold text-blue-700 underline-offset-2 hover:underline"
+                    to="/termos-de-uso"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Termos de Uso
+                  </Link>{" "}
+                  e a{" "}
+                  <Link
+                    className="font-semibold text-blue-700 underline-offset-2 hover:underline"
+                    to="/politica-de-privacidade"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Política de Privacidade
+                  </Link>
+                  .
+                </p>
+              </div>
             )}
 
             {/* Erro */}
@@ -214,6 +294,9 @@ export function LoginPage({ mode = "login" }: LoginPageProps) {
               ← Voltar para o início
             </Link>
           </div>
+          {!isRegister && (
+            <LegalLinks className="mt-5 justify-center border-t border-slate-100 pt-4" />
+          )}
         </div>
       </div>
     </main>
