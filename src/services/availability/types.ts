@@ -1,4 +1,4 @@
-import type { DayAvailability, SlotAvailability } from "../../features/shared/types";
+import type { DayAvailability, SlotAvailability } from "../types";
 
 export interface AvailabilityGateway {
   getMonthAvailability(params: {

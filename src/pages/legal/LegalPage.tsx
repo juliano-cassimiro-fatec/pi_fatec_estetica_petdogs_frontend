@@ -23,8 +23,8 @@ const documents: Record<LegalDocument, { title: string; intro: string; sections:
           bullets: [
             "Identificação e contato: nome, e-mail, telefone e foto de perfil, quando fornecidos.",
             "Conta e segurança: credenciais de acesso e informações técnicas necessárias para autenticar e proteger a sessão.",
-            "Agendamento e atendimento: pet, serviço, profissional, data, horário e situação do agendamento.",
-            "Dados do pet: nome, raça, idade, porte e foto, quando informados no cadastro.",
+            "Agendamento e atendimento: cão, serviço, profissional, data, horário e situação do agendamento.",
+            "Dados do cão: nome, raça, idade, porte e foto, quando informados no cadastro.",
             "Dados profissionais: especialidade e horários de trabalho dos profissionais cadastrados.",
           ],
         },
@@ -81,13 +81,13 @@ const documents: Record<LegalDocument, { title: string; intro: string; sections:
           title: "Agendamentos",
           paragraphs: [
             "A disponibilidade exibida pode mudar até a confirmação do agendamento. A solicitação só é concluída após o sistema confirmar o horário escolhido.",
-            "Confira os dados do pet e do atendimento antes de confirmar. Alterações, cancelamentos, valores e condições específicas devem seguir as informações fornecidas pela unidade no momento do atendimento.",
+            "Confira os dados do cão e do atendimento antes de confirmar. Alterações, cancelamentos, valores e condições específicas devem seguir as informações fornecidas pela unidade no momento do atendimento.",
           ],
         },
         {
           title: "Responsabilidades",
           paragraphs: [
-            "Use o sistema de forma lícita e forneça informações necessárias para organizar o atendimento. A pessoa responsável pelo pet deve informar à equipe características ou necessidades relevantes para a prestação segura do serviço.",
+            "Use o sistema de forma lícita e forneça informações necessárias para organizar o atendimento. A pessoa responsável pelo cão deve informar à equipe características ou necessidades relevantes para a prestação segura do serviço.",
             "Não tente acessar contas de terceiros, interferir no funcionamento do sistema ou enviar conteúdo malicioso.",
           ],
         },

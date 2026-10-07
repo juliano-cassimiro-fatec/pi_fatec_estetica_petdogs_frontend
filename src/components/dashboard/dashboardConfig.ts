@@ -1,11 +1,11 @@
-import type { AuthUser } from "../shared/types";
-import type { IconName } from "../../components/ui/Icon";
+import type { AuthUser } from "../../services/types";
+import type { IconName } from "../ui/Icon";
 
 export type TabKey = "agenda" | "servicos" | "profissionais" | "clientes" | "pets" | "perfil";
 export type Role = AuthUser["role"];
 
 export interface ScheduleFormState {
-  animal: string;
+  cao: string;
   servico: string;
   profissional: string;
   data_hora: string;
@@ -50,7 +50,7 @@ export const emptyClientForm = () => ({ name: "", email: "", senha: "", telefone
 export const emptyPetForm = () => ({
   nome: "",
   raca: "",
-  idade: "",
+  dataNascimento: "",
   porte: "pequeno",
   foto: "",
   cliente: "",
@@ -68,6 +68,11 @@ export const emptyProfessionalForm = () => ({
   almoco_inicio: "12:00",
   almoco_fim: "13:00",
 });
+
+export type ServiceFormState = ReturnType<typeof emptyServiceForm>;
+export type ClientFormState = ReturnType<typeof emptyClientForm>;
+export type PetFormState = ReturnType<typeof emptyPetForm>;
+export type ProfessionalFormState = ReturnType<typeof emptyProfessionalForm>;
 
 export function formatCurrency(value: number) {
   return Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -168,6 +173,6 @@ export function getDashboardMode(role?: Role) {
   return {
     label: "Admin",
     title: "Painel administrativo",
-    description: "Gerencie clientes, pets, serviços, profissionais e agenda.",
+    description: "Gerencie clientes, cães, serviços, profissionais e agenda.",
   };
 }

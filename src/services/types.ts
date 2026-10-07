@@ -103,6 +103,7 @@ export interface Schedule {
   data_hora: string;
   status: "agendado" | "cancelado" | "completo" | "pendente" | "confirmado";
   cliente?: Customer;
+  cao?: Pet;
   animal?: Pet;
   servico?: Service;
   profissional?: Professional;

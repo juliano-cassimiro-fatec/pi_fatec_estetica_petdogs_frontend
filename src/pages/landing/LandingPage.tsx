@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { ServicesSection } from "../../components/ui/ServicesSection";
 import { LegalLinks } from "../../components/ui/LegalLinks";
+import { AboutSection } from "../../components/landing/AboutSection";
 import { landingPageService } from "../../services/landing/landingpageService";
 import type { LandingService } from "../../services/landing/types";
 
@@ -65,6 +66,13 @@ export function LandingPage() {
 
           <div className="flex items-center gap-4">
             <a
+              href="#sobre"
+              className="hidden text-sm font-bold text-slate-600 transition hover:text-blue-600 sm:block"
+            >
+              Sobre nós
+            </a>
+
+            <a
               href="#servicos"
               className="hidden text-sm font-bold text-slate-600 transition hover:text-blue-600 sm:block"
             >
@@ -97,11 +105,11 @@ export function LandingPage() {
               </p>
 
               <h2 className="mt-4 text-4xl font-black leading-tight sm:text-5xl">
-                Cuidado e carinho para o seu pet.
+                Cuidado e carinho para o seu cão.
               </h2>
 
               <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
-                Banho e tosa com cuidado profissional para deixar seu pet limpo, confortável e bem
+                Banho e tosa com cuidado profissional para deixar seu cão limpo, confortável e bem
                 cuidado.
               </p>
 
@@ -115,8 +123,6 @@ export function LandingPage() {
               </a>
 
               <div className="mt-8 flex flex-wrap gap-3">
-               
-
                 <a
                   href="/login"
                   className="rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 transition hover:border-blue-200 hover:text-blue-600"
@@ -134,6 +140,7 @@ export function LandingPage() {
           </div>
         </section>
 
+        <AboutSection />
         <ServicesSection services={services} loading={loadingServices} />
 
         <section id="unidade" className="scroll-mt-8 bg-slate-50 px-4 py-14 sm:py-16">

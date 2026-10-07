@@ -1,18 +1,11 @@
-import type {
-  AuthUser,
-  Customer,
-  Pet,
-  Professional,
-  Schedule,
-  Service,
-} from "../../features/shared/types";
+import type { AuthUser, Customer, Pet, Professional, Schedule, Service } from "../types";
 
 export type PetPayload = Omit<Pet, "_id" | "cliente"> & { cliente?: string };
 export type ServicePayload = Omit<Service, "_id">;
 export type ProfessionalPayload = Omit<Professional, "_id"> & { senha?: string };
 export type CustomerPayload = Omit<Customer, "_id"> & { senha?: string };
 export interface SchedulePayload {
-  animal: string;
+  cao: string;
   servico: string;
   profissional: string;
   data_hora: string;
@@ -40,7 +33,7 @@ export interface DashboardRepository {
   listCustomers(): Promise<Customer[]>;
   listSchedules(): Promise<Schedule[]>;
   getCustomerProfile(): Promise<Customer>;
-  savePet(payload: PetPayload, id?: string | null): Promise<void>;
+  savePet(payload: Partial<PetPayload>, id?: string | null): Promise<void>;
   saveService(payload: ServicePayload, id?: string | null): Promise<void>;
   saveProfessional(payload: ProfessionalPayload, id?: string | null): Promise<void>;
   saveCustomer(payload: CustomerPayload, id?: string | null): Promise<void>;

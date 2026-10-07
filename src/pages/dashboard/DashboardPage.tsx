@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { AvailabilityCalendar } from "../../components/calendar/AvailabilityCalendar";
-import { ScheduleCalendar } from "../../components/calendar/ScheduleCalendar";
-import { Modal } from "../../components/ui/Modal";
 import type {
   AuthUser,
   Customer,
@@ -10,38 +7,50 @@ import type {
   Professional,
   Schedule,
   Service,
-} from "../../features/shared/types";
+} from "../../services/types";
 import { dashboardService } from "../../services/dashboard/dashboardService";
+import type { PetPayload } from "../../services/dashboard/types";
 import { useAuth } from "../../services/auth/useAuth";
 import { isUnauthorizedError, presentRequestError } from "../../services/api/errors";
-import { emptyProfileForm, presentProfileForm } from "../../features/dashboard/profileForm";
-import Card from "../../components/ui/Card";
-import Icon from "../../components/ui/Icon";
-import Field from "../../components/ui/Field";
-import PasswordInput from "../../components/ui/PasswordInput";
-import PhotoPreview from "../../components/ui/PhotoPreview";
+import { emptyProfileForm, presentProfileForm } from "../../services/dashboard/profileForm";
 import {
-  buttonClass,
-  dangerButtonClass,
   emptyClientForm,
   emptyPetForm,
   emptyProfessionalForm,
   emptyServiceForm,
-  formatPhone,
-  formatCurrency,
-  inputClass,
   onlyDigits,
-  secondaryButtonClass,
   validateWorkSchedule,
-  weekdayOptions,
   type ConfirmModalState,
   type ScheduleFormState,
   type TabKey,
-} from "../../features/dashboard/dashboardConfig";
-import { can } from "../../features/dashboard/permissions";
+} from "../../components/dashboard/dashboardConfig";
+import { can } from "../../components/dashboard/permissions";
 import { uploadImage } from "../../services/uploads/uploadService";
-import { resolveImageUrl } from "../../services/uploads/imageUrl";
 import { showToast } from "../../components/ui/toastEvents";
+import { ScheduleModal } from "../../components/dashboard/ScheduleModal";
+import { PetModal } from "../../components/dashboard/PetModal";
+import { ServiceModal } from "../../components/dashboard/ServiceModal";
+import { ProfessionalModal } from "../../components/dashboard/ProfessionalModal";
+import { ClientModal } from "../../components/dashboard/ClientModal";
+import { ConfirmationModal } from "../../components/dashboard/ConfirmationModal";
+import { SchedulePanel } from "../../components/dashboard/SchedulePanel";
+import { DogsPanel } from "../../components/dashboard/DogsPanel";
+import { ServicesPanel } from "../../components/dashboard/ServicesPanel";
+import { ProfessionalsPanel } from "../../components/dashboard/ProfessionalsPanel";
+import { ClientsPanel } from "../../components/dashboard/ClientsPanel";
+import { ProfilePanel } from "../../components/dashboard/ProfilePanel";
+import { DashboardHeader } from "../../components/dashboard/DashboardHeader";
+
+function getAgeFromBirthDate(value: string) {
+  if (!value) return -1;
+
+  const [year, month, day] = value.split("-").map(Number);
+  const today = new Date();
+  const hasHadBirthdayThisYear =
+    today.getMonth() + 1 > month || (today.getMonth() + 1 === month && today.getDate() >= day);
+
+  return today.getFullYear() - year - (hasHadBirthdayThisYear ? 0 : 1);
+}
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -62,12 +71,13 @@ export function DashboardPage() {
   const [editingPetId, setEditingPetId] = useState<string | null>(null);
   const [petEditModalOpen, setPetEditModalOpen] = useState(false);
   const [scheduleForm, setScheduleForm] = useState<ScheduleFormState>({
-    animal: "",
+    cao: "",
     servico: "",
     profissional: "",
     data_hora: "",
   });
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [scheduleInitialDate, setScheduleInitialDate] = useState("");
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
   const [serviceForm, setServiceForm] = useState(emptyServiceForm());
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
@@ -114,32 +124,40 @@ export function DashboardPage() {
     void navigate("/login", { replace: true });
   }, [auth, navigate]);
 
-  const loadData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const dashboardData = await dashboardService.loadDashboard();
-      setUser(dashboardData.user);
-      setPets(dashboardData.pets);
-      if (dashboardData.user.role === "cliente" && dashboardData.pets.length === 0) {
-        setActiveTab("pets");
-      }
-      setServices(dashboardData.services);
-      setProfessionals(dashboardData.professionals);
-      setCustomers(dashboardData.customers);
-      setSchedules(dashboardData.schedules);
-      setProfileForm(presentProfileForm(dashboardData.profile));
-    } catch (requestError) {
-      if (isUnauthorizedError(requestError)) {
-        logout();
-        return;
-      }
+  const loadData = useCallback(
+    async (showLoading = true) => {
+      try {
+        if (showLoading) setLoading(true);
+        setError("");
+        const dashboardData = await dashboardService.loadDashboard();
+        setUser(dashboardData.user);
+        setPets(dashboardData.pets);
+        if (dashboardData.user.role === "cliente" && dashboardData.pets.length === 0) {
+          setActiveTab("pets");
+          if (showLoading) {
+            setPetForm(emptyPetForm());
+            setEditingPetId(null);
+            setPetEditModalOpen(true);
+          }
+        }
+        setServices(dashboardData.services);
+        setProfessionals(dashboardData.professionals);
+        setCustomers(dashboardData.customers);
+        setSchedules(dashboardData.schedules);
+        setProfileForm(presentProfileForm(dashboardData.profile));
+      } catch (requestError) {
+        if (isUnauthorizedError(requestError)) {
+          logout();
+          return;
+        }
 
-      setError("Não foi possível carregar o painel");
-    } finally {
-      setLoading(false);
-    }
-  }, [logout]);
+        setError("Não foi possível carregar o painel");
+      } finally {
+        if (showLoading) setLoading(false);
+      }
+    },
+    [logout],
+  );
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -159,7 +177,7 @@ export function DashboardPage() {
       setMessage("");
       await action();
       setMessage(success);
-      await loadData();
+      await loadData(false);
     } catch (requestError) {
       if (isUnauthorizedError(requestError)) {
         logout();
@@ -202,9 +220,10 @@ export function DashboardPage() {
     setActiveTab("profissionais");
   }
 
-  function openNewScheduleModal() {
+  function openNewScheduleModal(initialDate?: string) {
     setEditingScheduleId(null);
-    setScheduleForm({ animal: "", servico: "", profissional: "", data_hora: "" });
+    setScheduleInitialDate(initialDate ?? "");
+    setScheduleForm({ cao: "", servico: "", profissional: "", data_hora: "" });
     setScheduleModalOpen(true);
   }
 
@@ -245,8 +264,9 @@ export function DashboardPage() {
 
   function startEditSchedule(schedule: Schedule) {
     setEditingScheduleId(schedule._id);
+    setScheduleInitialDate("");
     setScheduleForm({
-      animal: schedule.animal?._id ?? "",
+      cao: schedule.cao?._id ?? schedule.animal?._id ?? "",
       servico: schedule.servico?._id ?? "",
       profissional: schedule.profissional?._id ?? "",
       data_hora: schedule.data_hora,
@@ -258,6 +278,7 @@ export function DashboardPage() {
   function closeScheduleModal() {
     setScheduleModalOpen(false);
     setEditingScheduleId(null);
+    setScheduleInitialDate("");
   }
 
   function startEditClient(customer: Customer) {
@@ -278,7 +299,7 @@ export function DashboardPage() {
     setPetForm({
       nome: pet.nome,
       raca: pet.raca,
-      idade: String(pet.idade),
+      dataNascimento: "",
       porte: pet.porte,
       foto: pet.foto ?? "",
       cliente: pet.cliente?._id ?? "",
@@ -290,19 +311,45 @@ export function DashboardPage() {
   async function handlePetSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (uploading) return;
+    const idade = getAgeFromBirthDate(petForm.dataNascimento);
+    if (idade < 0 || idade > 18) {
+      const message = "Informe uma data de nascimento válida para um cão de até 18 anos.";
+      setError(message);
+      showToast(message);
+      return;
+    }
+
     await submit(
       async () => {
-        const payload = {
-          ...petForm,
-          idade: Number(petForm.idade),
+        const { dataNascimento, ...petData } = petForm;
+        const payload: PetPayload = {
+          ...petData,
+          idade,
           cliente: isAdmin ? petForm.cliente : undefined,
         };
-        await dashboardService.savePet(payload, editingPetId);
+        const existingPet = pets.find((pet) => pet._id === editingPetId);
+        const changedPayload: Partial<PetPayload> = {};
+
+        if (existingPet) {
+          if (existingPet.nome !== payload.nome) changedPayload.nome = payload.nome;
+          if (existingPet.raca !== payload.raca) changedPayload.raca = payload.raca;
+          if (existingPet.idade !== payload.idade) changedPayload.idade = payload.idade;
+          if (existingPet.porte !== payload.porte) changedPayload.porte = payload.porte;
+          if ((existingPet.foto ?? "") !== (payload.foto ?? "")) changedPayload.foto = payload.foto;
+          if (isAdmin && existingPet.cliente?._id !== payload.cliente) {
+            changedPayload.cliente = payload.cliente;
+          }
+        }
+
+        await dashboardService.savePet(
+          editingPetId && existingPet ? changedPayload : payload,
+          editingPetId,
+        );
         setPetForm(emptyPetForm());
         setEditingPetId(null);
         setPetEditModalOpen(false);
       },
-      editingPetId ? "Pet atualizado com sucesso" : "Pet salvo com sucesso",
+      editingPetId ? "Cão atualizado com sucesso" : "Cão cadastrado com sucesso",
     );
   }
 
@@ -312,7 +359,7 @@ export function DashboardPage() {
     await submit(
       async () => {
         await dashboardService.saveSchedule(scheduleForm, editingScheduleId);
-        setScheduleForm({ animal: "", servico: "", profissional: "", data_hora: "" });
+        setScheduleForm({ cao: "", servico: "", profissional: "", data_hora: "" });
         setEditingScheduleId(null);
         setScheduleModalOpen(false);
       },
@@ -441,1316 +488,248 @@ export function DashboardPage() {
       ====================================================== */}
         {!loading && user && (
           <>
-            <header className="mb-6 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                {/* Logo / título */}
-                <div className="shrink-0">
-                  <h1 className="text-2xl font-black tracking-tight text-slate-950">
-                    Banho & Tosa
-                  </h1>
-                </div>
-
-                {/* Navegação */}
-                <nav className="flex gap-1 overflow-x-auto rounded-2xl bg-slate-50 p-1">
-                  {[
-                    {
-                      key: "agenda",
-                      label: "Agenda",
-                      icon: "calendar",
-                      show: isAdmin || isProfessional || (isCustomer && pets.length > 0),
-                    },
-                    {
-                      key: "pets",
-                      label: "Pets",
-                      icon: "pets",
-                      show: isAdmin || isCustomer,
-                    },
-                    {
-                      key: "servicos",
-                      label: "Serviços",
-                      icon: "services",
-                      show: isAdmin || isCustomer,
-                    },
-                    {
-                      key: "profissionais",
-                      label: "Profissionais",
-                      icon: "users",
-                      show: isAdmin || isCustomer,
-                    },
-                    {
-                      key: "clientes",
-                      label: "Clientes",
-                      icon: "clients",
-                      show: isAdmin,
-                    },
-                  ]
-                    .filter((item) => item.show)
-                    .map((item) => (
-                      <button
-                        key={item.key}
-                        type="button"
-                        onClick={() => setActiveTab(item.key as TabKey)}
-                        className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition ${
-                          activeTab === item.key
-                            ? "bg-blue-600 text-white shadow-sm"
-                            : "text-slate-600 hover:bg-white hover:text-slate-950"
-                        }`}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                </nav>
-
-                <div className="flex items-center gap-2">
-                  {!isAdmin && (
-                    <button
-                      onClick={() => setActiveTab("perfil")}
-                      type="button"
-                      className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                    >
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-                        <PhotoPreview
-                          src={user.foto}
-                          alt="Foto do usuário"
-                          className="h-8 w-8 rounded-full"
-                        />
-                      </span>
-                      <span className="hidden sm:block">Perfil</span>
-                    </button>
-                  )}
-
-                  {/* Sair */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      openExitConfirm({
-                        title: "Sair da aplicação?",
-                        description: "Você será desconectado da aplicação.",
-                        confirmLabel: "Sair",
-                        tone: "warning",
-                        onConfirm: () => Promise.resolve(logout()),
-                      })
-                    }
-                    className="inline-flex shrink-0 items-center justify-center rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-                  >
-                    Sair
-                  </button>
-                </div>
-              </div>
-            </header>
+            <DashboardHeader
+              user={user}
+              isAdmin={isAdmin}
+              isProfessional={isProfessional}
+              isCustomer={isCustomer}
+              activeTab={activeTab}
+              dogCount={pets.length}
+              onTabChange={setActiveTab}
+              onProfile={() => setActiveTab("perfil")}
+              onLogout={() =>
+                openExitConfirm({
+                  title: "Sair da aplicação?",
+                  description: "Você será desconectado da aplicação.",
+                  confirmLabel: "Sair",
+                  tone: "warning",
+                  onConfirm: () => Promise.resolve(logout()),
+                })
+              }
+            />
 
             {/* =====================================================
               CONTEÚDO
           ====================================================== */}
             <div className="space-y-6">
-              {/* =================================================
-                AGENDA
-            ================================================== */}
               {activeTab === "agenda" && (
-                <section className="space-y-6">
-                  <Card
-                    icon="calendar"
-                    title="Agendamentos"
-                    description={
-                      isAdmin
-                        ? "Visualize todos os agendamentos."
-                        : isProfessional
-                          ? "Visualize seus atendimentos."
-                          : "Visualize seus horários."
-                    }
-                  >
-                    <ScheduleCalendar
-                      schedules={schedules}
-                      isAdmin={isAdmin}
-                      canEdit={can(user.role, "schedule:edit")}
-                      canConfirm={can(user.role, "schedule:confirm")}
-                      canCancel={can(user.role, "schedule:cancel")}
-                      canCreate={pets.length > 0 && services.length > 0 && professionals.length > 0}
-                      disabled={saving}
-                      onCreate={openNewScheduleModal}
-                      onEdit={startEditSchedule}
-                      onConfirm={(schedule) => confirmSchedule(schedule._id)}
-                      onCancel={(schedule) =>
-                        openDeleteConfirm({
-                          title: "Cancelar agendamento?",
-                          description: `O atendimento de ${schedule.animal?.nome ?? "Pet"} será cancelado.`,
-                          confirmLabel: "Cancelar agendamento",
-                          tone: "warning",
-                          onConfirm: () => cancelSchedule(schedule._id),
-                        })
-                      }
-                    />
-                  </Card>
-                </section>
+                <SchedulePanel
+                  schedules={schedules}
+                  isAdmin={isAdmin}
+                  isProfessional={isProfessional}
+                  canEdit={can(user.role, "schedule:edit")}
+                  canConfirm={can(user.role, "schedule:confirm")}
+                  canCancel={can(user.role, "schedule:cancel")}
+                  canCreate={pets.length > 0 && services.length > 0 && professionals.length > 0}
+                  saving={saving}
+                  onCreate={openNewScheduleModal}
+                  onEdit={startEditSchedule}
+                  onConfirm={(schedule) => confirmSchedule(schedule._id)}
+                  onCancel={(schedule) =>
+                    openDeleteConfirm({
+                      title: "Cancelar agendamento?",
+                      description: `O atendimento de ${schedule.cao?.nome ?? schedule.animal?.nome ?? "Cão"} será cancelado.`,
+                      confirmLabel: "Cancelar agendamento",
+                      tone: "warning",
+                      onConfirm: () => cancelSchedule(schedule._id),
+                    })
+                  }
+                />
               )}
 
-              {/* =================================================
-                PETS
-            ================================================== */}
               {activeTab === "pets" && (isAdmin || isCustomer) && (
-                <section>
-                  <Card
-                    icon="pets"
-                    title={isAdmin ? "Pets cadastrados" : "Meus pets"}
-                    description={
-                      isAdmin ? "Gerencie os animais cadastrados." : "Gerencie seus animais."
-                    }
-                  >
-                    <div className="mb-5 flex justify-end">
-                      <button
-                        className={buttonClass}
-                        type="button"
-                        onClick={() => {
-                          setEditingPetId(null);
-                          setPetForm(emptyPetForm());
-                          setPetEditModalOpen(true);
-                        }}
-                      >
-                        Novo pet
-                      </button>
-                    </div>
-
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                      {pets.map((pet) => (
-                        <article
-                          key={pet._id}
-                          className="overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:shadow-md"
-                        >
-                          {pet.foto ? (
-                            <img
-                              src={resolveImageUrl(pet.foto)}
-                              alt={pet.nome}
-                              className="h-40 w-full object-cover"
-                            />
-                          ) : (
-                            <div className="grid h-40 place-items-center bg-blue-50 text-blue-600">
-                              <Icon name="pets" />
-                            </div>
-                          )}
-
-                          <div className="p-4">
-                            <h3 className="font-black text-slate-950">{pet.nome}</h3>
-
-                            <p className="mt-1 text-sm text-slate-500">
-                              {pet.raca} · {pet.idade} anos
-                            </p>
-
-                            <span className="mt-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
-                              Porte: {pet.porte}
-                            </span>
-
-                            {isAdmin && (
-                              <p className="mt-2 text-xs font-semibold text-slate-500">
-                                Tutor: {pet.cliente?.name ?? "Não informado"}
-                              </p>
-                            )}
-
-                            <div className="mt-4 flex gap-2">
-                              <button
-                                className={`${secondaryButtonClass} flex-1`}
-                                type="button"
-                                onClick={() => startEditPet(pet)}
-                              >
-                                Editar
-                              </button>
-
-                              <button
-                                className={dangerButtonClass}
-                                type="button"
-                                onClick={() =>
-                                  openDeleteConfirm({
-                                    title: "Excluir pet?",
-                                    description: `Você deseja excluir o pet ${pet.nome}?`,
-                                    confirmLabel: "Excluir pet",
-                                    tone: "danger",
-                                    onConfirm: () =>
-                                      removeResource(`/pets/${pet._id}`, "Pet removido"),
-                                  })
-                                }
-                                disabled={saving}
-                              >
-                                Excluir
-                              </button>
-                            </div>
-                          </div>
-                        </article>
-                      ))}
-
-                      {pets.length === 0 && (
-                        <p className="rounded-2xl bg-slate-50 p-6 text-sm text-slate-500 sm:col-span-2 lg:col-span-3">
-                          Nenhum pet cadastrado.
-                        </p>
-                      )}
-                    </div>
-                  </Card>
-                </section>
+                <DogsPanel
+                  dogs={pets}
+                  isAdmin={isAdmin}
+                  saving={saving}
+                  onAdd={() => {
+                    setEditingPetId(null);
+                    setPetForm(emptyPetForm());
+                    setPetEditModalOpen(true);
+                  }}
+                  onEdit={startEditPet}
+                  onDelete={(pet) =>
+                    openDeleteConfirm({
+                      title: "Excluir cão?",
+                      description: `Você deseja excluir o cão ${pet.nome}?`,
+                      confirmLabel: "Excluir cão",
+                      tone: "danger",
+                      onConfirm: () => removeResource(`/caes/${pet._id}`, "Cão removido"),
+                    })
+                  }
+                />
               )}
 
-              {/* =================================================
-                SERVIÇOS
-            ================================================== */}
               {activeTab === "servicos" && (isAdmin || isCustomer) && (
-                <section>
-                  <Card
-                    icon="services"
-                    title="Serviços"
-                    description="Consulte os serviços disponíveis."
-                  >
-                    {isAdmin && (
-                      <div className="mb-5 flex justify-end">
-                        <button
-                          className={buttonClass}
-                          type="button"
-                          onClick={() => {
-                            setEditingServiceId(null);
-                            setServiceForm(emptyServiceForm());
-                            setServiceEditModalOpen(true);
-                          }}
-                        >
-                          Novo serviço
-                        </button>
-                      </div>
-                    )}
-
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                      {services.map((service) => (
-                        <article
-                          key={service._id}
-                          className="rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-blue-200 hover:shadow-sm"
-                        >
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                            <Icon name="services" />
-                          </div>
-
-                          <h3 className="mt-4 font-black text-slate-950">{service.name}</h3>
-
-                          <p className="mt-2 text-sm leading-6 text-slate-500">
-                            {service.descricao ?? "Sem descrição."}
-                          </p>
-
-                          <div className="mt-4 flex items-center justify-between">
-                            <span className="text-sm font-bold text-slate-500">
-                              {service.duracao_min} min
-                            </span>
-
-                            <strong className="text-lg font-black text-blue-600">
-                              {formatCurrency(service.preco)}
-                            </strong>
-                          </div>
-
-                          {isAdmin && (
-                            <div className="mt-4 flex gap-2">
-                              <button
-                                className={`${secondaryButtonClass} flex-1`}
-                                type="button"
-                                onClick={() => startEditService(service)}
-                              >
-                                Editar
-                              </button>
-
-                              <button
-                                className={dangerButtonClass}
-                                type="button"
-                                onClick={() =>
-                                  openDeleteConfirm({
-                                    title: "Excluir serviço?",
-                                    description: `Você deseja excluir o serviço ${service.name}?`,
-                                    confirmLabel: "Excluir serviço",
-                                    tone: "danger",
-                                    onConfirm: () =>
-                                      removeResource(
-                                        `/servicos/${service._id}`,
-                                        "Serviço removido",
-                                      ),
-                                  })
-                                }
-                                disabled={saving}
-                              >
-                                Excluir
-                              </button>
-                            </div>
-                          )}
-                        </article>
-                      ))}
-
-                      {services.length === 0 && (
-                        <p className="rounded-2xl bg-slate-50 p-6 text-sm text-slate-500 sm:col-span-2 lg:col-span-3">
-                          Nenhum serviço cadastrado.
-                        </p>
-                      )}
-                    </div>
-                  </Card>
-                </section>
+                <ServicesPanel
+                  services={services}
+                  isAdmin={isAdmin}
+                  saving={saving}
+                  onAdd={() => {
+                    setEditingServiceId(null);
+                    setServiceForm(emptyServiceForm());
+                    setServiceEditModalOpen(true);
+                  }}
+                  onEdit={startEditService}
+                  onDelete={(service) =>
+                    openDeleteConfirm({
+                      title: "Excluir serviço?",
+                      description: `Você deseja excluir o serviço ${service.name}?`,
+                      confirmLabel: "Excluir serviço",
+                      tone: "danger",
+                      onConfirm: () =>
+                        removeResource(`/servicos/${service._id}`, "Serviço removido"),
+                    })
+                  }
+                />
               )}
 
-              {/* =================================================
-                PROFISSIONAIS
-            ================================================== */}
               {activeTab === "profissionais" && (isAdmin || isCustomer) && (
-                <section>
-                  <Card
-                    icon="users"
-                    title="Profissionais"
-                    description="Conheça os profissionais disponíveis."
-                  >
-                    {isAdmin && (
-                      <div className="mb-5 flex justify-end">
-                        <button
-                          className={buttonClass}
-                          type="button"
-                          onClick={() => {
-                            setEditingProfessionalId(null);
-                            setProfessionalForm(emptyProfessionalForm());
-                            setProfessionalEditModalOpen(true);
-                          }}
-                        >
-                          Novo profissional
-                        </button>
-                      </div>
-                    )}
-
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                      {professionals.map((professional) => (
-                        <article
-                          key={professional._id}
-                          className="rounded-2xl border border-slate-200 bg-white p-5 transition hover:shadow-sm"
-                        >
-                          <div className="flex items-center gap-3">
-                            {professional.foto ? (
-                              <img
-                                src={resolveImageUrl(professional.foto)}
-                                alt={professional.name}
-                                className="h-14 w-14 rounded-2xl object-cover"
-                              />
-                            ) : (
-                              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-blue-50 text-blue-600">
-                                <Icon name="user" />
-                              </div>
-                            )}
-
-                            <div className="min-w-0">
-                              <h3 className="truncate font-black text-slate-950">
-                                {professional.name}
-                              </h3>
-
-                              <p className="text-sm text-slate-500">{professional.especialidade}</p>
-                            </div>
-                          </div>
-
-                          <p className="mt-4 truncate text-xs font-semibold text-slate-400">
-                            {professional.email}
-                          </p>
-
-                          {isAdmin && (
-                            <div className="mt-4 flex gap-2">
-                              <button
-                                className={`${secondaryButtonClass} flex-1`}
-                                type="button"
-                                onClick={() => startEditProfessional(professional)}
-                              >
-                                Editar
-                              </button>
-
-                              <button
-                                className={dangerButtonClass}
-                                type="button"
-                                onClick={() =>
-                                  openDeleteConfirm({
-                                    title: "Excluir profissional?",
-                                    description: `Você deseja excluir o profissional ${professional.name}?`,
-                                    confirmLabel: "Excluir profissional",
-                                    tone: "danger",
-                                    onConfirm: () =>
-                                      removeResource(
-                                        `/profissionais/${professional._id}`,
-                                        "Profissional removido",
-                                      ),
-                                  })
-                                }
-                                disabled={saving}
-                              >
-                                Excluir
-                              </button>
-                            </div>
-                          )}
-                        </article>
-                      ))}
-
-                      {professionals.length === 0 && (
-                        <p className="rounded-2xl bg-slate-50 p-6 text-sm text-slate-500 sm:col-span-2 lg:col-span-3">
-                          Nenhum profissional cadastrado.
-                        </p>
-                      )}
-                    </div>
-                  </Card>
-                </section>
+                <ProfessionalsPanel
+                  professionals={professionals}
+                  isAdmin={isAdmin}
+                  saving={saving}
+                  onAdd={() => {
+                    setEditingProfessionalId(null);
+                    setProfessionalForm(emptyProfessionalForm());
+                    setProfessionalEditModalOpen(true);
+                  }}
+                  onEdit={startEditProfessional}
+                  onDelete={(professional) =>
+                    openDeleteConfirm({
+                      title: "Excluir profissional?",
+                      description: `Você deseja excluir o profissional ${professional.name}?`,
+                      confirmLabel: "Excluir profissional",
+                      tone: "danger",
+                      onConfirm: () =>
+                        removeResource(
+                          `/profissionais/${professional._id}`,
+                          "Profissional removido",
+                        ),
+                    })
+                  }
+                />
               )}
 
-              {/* =================================================
-                CLIENTES
-            ================================================== */}
               {activeTab === "clientes" && isAdmin && (
-                <section>
-                  <Card
-                    icon="clients"
-                    title="Clientes"
-                    description="Gerencie os tutores cadastrados."
-                  >
-                    <div className="mb-5 flex justify-end">
-                      <button
-                        className={buttonClass}
-                        type="button"
-                        onClick={() => {
-                          setEditingClientId(null);
-                          setClientForm(emptyClientForm());
-                          setClientEditModalOpen(true);
-                        }}
-                      >
-                        Novo cliente
-                      </button>
-                    </div>
-
-                    <div className="grid gap-3">
-                      {customers.map((customer) => (
-                        <article
-                          key={customer._id}
-                          className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition hover:shadow-sm sm:flex-row sm:items-center sm:justify-between"
-                        >
-                          <div className="flex min-w-0 items-center gap-3">
-                            {customer.foto ? (
-                              <img
-                                src={resolveImageUrl(customer.foto)}
-                                alt={customer.name}
-                                className="h-12 w-12 shrink-0 rounded-xl object-cover"
-                              />
-                            ) : (
-                              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600">
-                                <Icon name="clients" />
-                              </div>
-                            )}
-
-                            <div className="min-w-0">
-                              <h3 className="truncate font-black text-slate-950">
-                                {customer.name}
-                              </h3>
-
-                              <p className="truncate text-sm text-slate-500">{customer.email}</p>
-
-                              <p className="text-xs text-slate-400">
-                                {customer.telefone ?? "Sem telefone"}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2">
-                            <button
-                              className={secondaryButtonClass}
-                              type="button"
-                              onClick={() => startEditClient(customer)}
-                            >
-                              Editar
-                            </button>
-
-                            <button
-                              className={dangerButtonClass}
-                              type="button"
-                              onClick={() =>
-                                openDeleteConfirm({
-                                  title: "Excluir cliente?",
-                                  description: `Você deseja excluir o cliente ${customer.name}?`,
-                                  confirmLabel: "Excluir cliente",
-                                  tone: "danger",
-                                  onConfirm: () =>
-                                    removeResource(`/clientes/${customer._id}`, "Cliente removido"),
-                                })
-                              }
-                              disabled={saving}
-                            >
-                              Excluir
-                            </button>
-                          </div>
-                        </article>
-                      ))}
-
-                      {customers.length === 0 && (
-                        <p className="rounded-2xl bg-slate-50 p-6 text-sm text-slate-500">
-                          Nenhum cliente cadastrado.
-                        </p>
-                      )}
-                    </div>
-                  </Card>
-                </section>
+                <ClientsPanel
+                  customers={customers}
+                  saving={saving}
+                  onAdd={() => {
+                    setEditingClientId(null);
+                    setClientForm(emptyClientForm());
+                    setClientEditModalOpen(true);
+                  }}
+                  onEdit={startEditClient}
+                  onDelete={(customer) =>
+                    openDeleteConfirm({
+                      title: "Excluir cliente?",
+                      description: `Você deseja excluir o cliente ${customer.name}?`,
+                      confirmLabel: "Excluir cliente",
+                      tone: "danger",
+                      onConfirm: () =>
+                        removeResource(`/clientes/${customer._id}`, "Cliente removido"),
+                    })
+                  }
+                />
               )}
 
-              {/* =================================================
-                PERFIL
-            ================================================== */}
               {activeTab === "perfil" && (isCustomer || isProfessional) && (
-                <section>
-                  <Card
-                    icon="settings"
-                    title="Meu perfil"
-                    description="Atualize seus dados pessoais."
-                  >
-                    <form className="grid gap-5" onSubmit={handleProfileSubmit}>
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <Field label="Nome *">
-                          <input
-                            className={inputClass}
-                            maxLength={45}
-                            value={profileForm.name}
-                            onChange={(event) =>
-                              setProfileForm({
-                                ...profileForm,
-                                name: event.target.value,
-                              })
-                            }
-                            required
-                          />
-                        </Field>
-
-                        <Field label="E-mail *">
-                          <input
-                            className={inputClass}
-                            type="email"
-                            maxLength={45}
-                            value={profileForm.email}
-                            onChange={(event) =>
-                              setProfileForm({
-                                ...profileForm,
-                                email: event.target.value,
-                              })
-                            }
-                            required
-                          />
-                        </Field>
-
-                        <Field label="Telefone">
-                          <input
-                            className={inputClass}
-                            type="tel"
-                            maxLength={25}
-                            inputMode="numeric"
-                            placeholder="(11) 99999-9999"
-                            value={formatPhone(profileForm.telefone)}
-                            onChange={(event) =>
-                              setProfileForm({
-                                ...profileForm,
-                                telefone: formatPhone(event.target.value),
-                              })
-                            }
-                          />
-                        </Field>
-                      </div>
-
-                      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center">
-                        <PhotoPreview
-                          src={profileForm.foto}
-                          alt="Foto do perfil"
-                          className="h-28 w-28 shrink-0 rounded-2xl sm:h-32 sm:w-32"
-                        />
-
-                        <div className="min-w-0 flex-1">
-                          <p className="font-bold text-slate-900">Foto do perfil</p>
-                          <p className="mt-1 text-sm text-slate-500">
-                            Escolha uma imagem para identificar seu perfil.
-                          </p>
-                          <input
-                            className={`${inputClass} mt-3 w-full text-sm sm:max-w-md`}
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp,image/gif"
-                            disabled={uploading || saving}
-                            onChange={(event) =>
-                              void handleImageChange(event, (foto) =>
-                                setProfileForm({ ...profileForm, foto }),
-                              )
-                            }
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <button className={buttonClass} disabled={saving}>
-                          Salvar alterações
-                        </button>
-                      </div>
-                    </form>
-                  </Card>
-                </section>
+                <ProfilePanel
+                  form={profileForm}
+                  uploading={uploading}
+                  saving={saving}
+                  onChange={setProfileForm}
+                  onSubmit={handleProfileSubmit}
+                  onImageChange={(event) =>
+                    void handleImageChange(event, (foto) =>
+                      setProfileForm((current) => ({ ...current, foto })),
+                    )
+                  }
+                />
               )}
             </div>
 
-            {/* =====================================================
-              MODAL - AGENDAMENTO
-          ====================================================== */}
-            <Modal
+            <ScheduleModal
               open={scheduleModalOpen}
-              title={editingScheduleId ? "Editar agendamento" : "Novo agendamento"}
-              description="Escolha o pet, serviço, profissional e horário."
-              size="compact"
+              editingScheduleId={editingScheduleId}
+              form={scheduleForm}
+              dogs={pets}
+              professionals={professionals}
+              services={services}
+              initialDate={scheduleInitialDate}
+              saving={saving}
               onClose={closeScheduleModal}
-            >
-              <form className="grid gap-4" onSubmit={handleScheduleSubmit}>
-                <Field label="Pet *">
-                  <select
-                    className={inputClass}
-                    value={scheduleForm.animal}
-                    onChange={(event) =>
-                      setScheduleForm({
-                        ...scheduleForm,
-                        animal: event.target.value,
-                      })
-                    }
-                    required
-                  >
-                    <option value="">Selecione o pet</option>
+              onSubmit={handleScheduleSubmit}
+              onChange={setScheduleForm}
+            />
 
-                    {pets.map((pet) => (
-                      <option key={pet._id} value={pet._id}>
-                        {pet.nome}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-
-                <AvailabilityCalendar
-                  professionals={professionals}
-                  services={services}
-                  value={{
-                    profissional: scheduleForm.profissional,
-                    servico: scheduleForm.servico,
-                    data_hora: scheduleForm.data_hora,
-                  }}
-                  onChange={(next) =>
-                    setScheduleForm({
-                      ...scheduleForm,
-                      ...next,
-                    })
-                  }
-                  disabled={saving}
-                />
-
-                <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
-                  <button
-                    className={secondaryButtonClass}
-                    type="button"
-                    onClick={closeScheduleModal}
-                    disabled={saving}
-                  >
-                    Fechar
-                  </button>
-
-                  <button
-                    className={buttonClass}
-                    disabled={saving || !scheduleForm.data_hora || !scheduleForm.animal}
-                  >
-                    {editingScheduleId ? "Salvar agendamento" : "Confirmar agendamento"}
-                  </button>
-                </div>
-              </form>
-            </Modal>
-
-            {/* =====================================================
-              MODAL - PET
-          ====================================================== */}
-            <Modal
+            <PetModal
               open={petEditModalOpen}
-              title={editingPetId ? "Editar pet" : "Novo pet"}
-              description={
-                isAdmin ? "Cadastre o animal e vincule ao tutor." : "Cadastre seu animal."
-              }
+              isAdmin={isAdmin}
+              editingPetId={editingPetId}
+              form={petForm}
+              customers={customers}
+              uploading={uploading}
+              saving={saving}
               onClose={closePetEditModal}
-            >
-              <form className="grid gap-4" onSubmit={handlePetSubmit}>
-                {isAdmin && (
-                  <Field label="Tutor *">
-                    <select
-                      className={inputClass}
-                      value={petForm.cliente}
-                      onChange={(event) =>
-                        setPetForm({
-                          ...petForm,
-                          cliente: event.target.value,
-                        })
-                      }
-                      required
-                    >
-                      <option value="">Selecione o cliente</option>
+              onSubmit={handlePetSubmit}
+              onChange={setPetForm}
+              onImageChange={(event) =>
+                void handleImageChange(event, (foto) =>
+                  setPetForm((current) => ({ ...current, foto })),
+                )
+              }
+            />
 
-                      {customers.map((customer) => (
-                        <option key={customer._id} value={customer._id}>
-                          {customer.name}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                )}
-
-                <Field label="Nome Do Pet *">
-                  <input
-                    className={inputClass}
-                    maxLength={45}
-                    value={petForm.nome}
-                    onChange={(event) =>
-                      setPetForm({
-                        ...petForm,
-                        nome: event.target.value,
-                      })
-                    }
-                    required
-                  />
-                </Field>
-
-                <Field label="Raça *">
-                  <input
-                    className={inputClass}
-                    value={petForm.raca}
-                    onChange={(event) =>
-                      setPetForm({
-                        ...petForm,
-                        raca: event.target.value,
-                      })
-                    }
-                    required
-                  />
-                </Field>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Idade *">
-                    <input
-                      className="w-24 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                      min="0"
-                      type="number"
-                      value={petForm.idade}
-                      onChange={(event) =>
-                        setPetForm({
-                          ...petForm,
-                          idade: event.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </Field>
-
-                  <Field label="Porte *">
-                    <select
-                      className={inputClass}
-                      value={petForm.porte}
-                      onChange={(event) =>
-                        setPetForm({
-                          ...petForm,
-                          porte: event.target.value,
-                        })
-                      }
-                      required
-                    >
-                      <option value="pequeno">Pequeno</option>
-                      <option value="medio">Médio</option>
-                      <option value="grande">Grande</option>
-                    </select>
-                  </Field>
-                </div>
-
-                <Field label="Foto">
-                  <input
-                    className={inputClass}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    disabled={uploading || saving}
-                    onChange={(event) =>
-                      void handleImageChange(event, (foto) => setPetForm({ ...petForm, foto }))
-                    }
-                  />
-                </Field>
-
-                <PhotoPreview src={petForm.foto} alt="Foto do pet" />
-
-                <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-                  <button
-                    className={secondaryButtonClass}
-                    type="button"
-                    onClick={closePetEditModal}
-                  >
-                    Cancelar
-                  </button>
-
-                  <button className={buttonClass} disabled={saving}>
-                    {editingPetId ? "Salvar alterações" : "Cadastrar pet"}
-                  </button>
-                </div>
-              </form>
-            </Modal>
-
-            {/* =====================================================
-              MODAL - SERVIÇO
-          ====================================================== */}
-            <Modal
+            <ServiceModal
               open={serviceEditModalOpen}
-              title={editingServiceId ? "Editar serviço" : "Novo serviço"}
-              description="Informe nome, descrição, duração e preço."
+              editingServiceId={editingServiceId}
+              form={serviceForm}
+              saving={saving}
               onClose={closeServiceEditModal}
-            >
-              <form className="grid gap-4" onSubmit={handleServiceSubmit}>
-                <Field label="Nome do serviço *">
-                  <input
-                    className={inputClass}
-                    placeholder="Ex.: Banho completo"
-                    maxLength={45}
-                    value={serviceForm.name}
-                    onChange={(event) =>
-                      setServiceForm({
-                        ...serviceForm,
-                        name: event.target.value,
-                      })
-                    }
-                    required
-                  />
-                </Field>
+              onSubmit={handleServiceSubmit}
+              onChange={setServiceForm}
+            />
 
-                <Field label="Descrição *">
-                  <textarea
-                    className={`${inputClass} min-h-28 resize-none`}
-                    value={serviceForm.descricao}
-                    onChange={(event) =>
-                      setServiceForm({
-                        ...serviceForm,
-                        descricao: event.target.value,
-                      })
-                    }
-                    required
-                  />
-                </Field>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Duração (min) *">
-                    <input
-                      className={inputClass}
-                      min="1"
-                      type="number"
-                      value={serviceForm.duracao_min}
-                      onChange={(event) =>
-                        setServiceForm({
-                          ...serviceForm,
-                          duracao_min: event.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </Field>
-
-                  <Field label="Preço *">
-                    <input
-                      className={inputClass}
-                      min="0"
-                      step="0.01"
-                      type="number"
-                      value={serviceForm.preco}
-                      onChange={(event) =>
-                        setServiceForm({
-                          ...serviceForm,
-                          preco: event.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </Field>
-                </div>
-
-                <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-                  <button
-                    className={secondaryButtonClass}
-                    type="button"
-                    onClick={closeServiceEditModal}
-                  >
-                    Cancelar
-                  </button>
-
-                  <button className={buttonClass} disabled={saving}>
-                    {editingServiceId ? "Salvar alterações" : "Cadastrar serviço"}
-                  </button>
-                </div>
-              </form>
-            </Modal>
-
-            {/* =====================================================
-              MODAL - PROFISSIONAL
-          ====================================================== */}
-            <Modal
+            <ProfessionalModal
               open={professionalEditModalOpen}
-              title={editingProfessionalId ? "Editar profissional" : "Novo profissional"}
-              description="Gerencie os dados e horários do profissional."
+              editingProfessionalId={editingProfessionalId}
+              form={professionalForm}
+              uploading={uploading}
+              saving={saving}
               onClose={closeProfessionalEditModal}
-            >
-              <form className="grid gap-4" onSubmit={handleProfessionalSubmit}>
-                <Field label="Nome *">
-                  <input
-                    className={inputClass}
-                    maxLength={45}
-                    value={professionalForm.name}
-                    onChange={(event) =>
-                      setProfessionalForm({
-                        ...professionalForm,
-                        name: event.target.value,
-                      })
-                    }
-                    required
-                  />
-                </Field>
+              onSubmit={handleProfessionalSubmit}
+              onChange={setProfessionalForm}
+              onImageChange={(event) =>
+                void handleImageChange(event, (foto) =>
+                  setProfessionalForm((current) => ({ ...current, foto })),
+                )
+              }
+            />
 
-                <Field label="E-mail *">
-                  <input
-                    className={inputClass}
-                    type="email"
-                    maxLength={45}
-                    value={professionalForm.email}
-                    onChange={(event) =>
-                      setProfessionalForm({
-                        ...professionalForm,
-                        email: event.target.value,
-                      })
-                    }
-                    required
-                  />
-                </Field>
-
-                <Field
-                  label={editingProfessionalId ? "Nova senha" : "Senha inicial *"}
-                  hint={
-                    editingProfessionalId
-                      ? "Deixe vazio para manter a senha."
-                      : "Mínimo de 6 caracteres."
-                  }
-                >
-                  <PasswordInput
-                    className={inputClass}
-                    minLength={6}
-                    value={professionalForm.senha}
-                    onChange={(event) =>
-                      setProfessionalForm({
-                        ...professionalForm,
-                        senha: event.target.value,
-                      })
-                    }
-                    required={!editingProfessionalId}
-                  />
-                </Field>
-
-                <Field label="Telefone">
-                  <input
-                    className={inputClass}
-                    type="tel"
-                    maxLength={20}
-                    inputMode="numeric"
-                    placeholder="(11) 99999-9999"
-                    value={formatPhone(professionalForm.telefone)}
-                    onChange={(event) =>
-                      setProfessionalForm({
-                        ...professionalForm,
-                        telefone: formatPhone(event.target.value),
-                      })
-                    }
-                  />
-                </Field>
-
-                <Field label="Especialidade *">
-                  <input
-                    className={inputClass}
-                    value={professionalForm.especialidade}
-                    onChange={(event) =>
-                      setProfessionalForm({
-                        ...professionalForm,
-                        especialidade: event.target.value,
-                      })
-                    }
-                    required
-                  />
-                </Field>
-
-                {/* Dias */}
-                <div className="grid gap-2">
-                  <span className="text-sm font-bold text-slate-700">Dias de trabalho *</span>
-
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    {weekdayOptions.map((option) => {
-                      const selected = professionalForm.dias_trabalho.includes(option.value);
-
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          aria-pressed={selected}
-                          onClick={() =>
-                            setProfessionalForm({
-                              ...professionalForm,
-                              dias_trabalho: selected
-                                ? professionalForm.dias_trabalho.filter(
-                                    (item) => item !== option.value,
-                                  )
-                                : [...professionalForm.dias_trabalho, option.value],
-                            })
-                          }
-                          className={`rounded-xl border px-3 py-2 text-sm font-bold transition ${
-                            selected
-                              ? "border-blue-600 bg-blue-600 text-white"
-                              : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                          }`}
-                        >
-                          {option.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Hora inicial *">
-                    <input
-                      className={inputClass}
-                      type="time"
-                      value={professionalForm.horario_inicio}
-                      onChange={(event) =>
-                        setProfessionalForm({
-                          ...professionalForm,
-                          horario_inicio: event.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </Field>
-
-                  <Field label="Hora final *">
-                    <input
-                      className={inputClass}
-                      type="time"
-                      value={professionalForm.horario_fim}
-                      onChange={(event) =>
-                        setProfessionalForm({
-                          ...professionalForm,
-                          horario_fim: event.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </Field>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Saída para almoço">
-                    <input
-                      className={inputClass}
-                      type="time"
-                      value={professionalForm.almoco_inicio}
-                      onChange={(event) =>
-                        setProfessionalForm({
-                          ...professionalForm,
-                          almoco_inicio: event.target.value,
-                        })
-                      }
-                    />
-                  </Field>
-
-                  <Field label="Retorno do almoço">
-                    <input
-                      className={inputClass}
-                      type="time"
-                      value={professionalForm.almoco_fim}
-                      onChange={(event) =>
-                        setProfessionalForm({
-                          ...professionalForm,
-                          almoco_fim: event.target.value,
-                        })
-                      }
-                    />
-                  </Field>
-                </div>
-
-                <Field label="Foto">
-                  <input
-                    className={inputClass}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    disabled={uploading || saving}
-                    onChange={(event) =>
-                      void handleImageChange(event, (foto) =>
-                        setProfessionalForm({ ...professionalForm, foto }),
-                      )
-                    }
-                  />
-                </Field>
-
-                <PhotoPreview src={professionalForm.foto} alt="Prévia do profissional" />
-
-                <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-                  <button
-                    className={secondaryButtonClass}
-                    type="button"
-                    onClick={closeProfessionalEditModal}
-                  >
-                    Cancelar
-                  </button>
-
-                  <button className={buttonClass} disabled={saving}>
-                    {editingProfessionalId ? "Salvar alterações" : "Criar profissional"}
-                  </button>
-                </div>
-              </form>
-            </Modal>
-
-            {/* =====================================================
-              MODAL - CLIENTE
-          ====================================================== */}
-            <Modal
+            <ClientModal
               open={clientEditModalOpen}
-              title={editingClientId ? "Editar cliente" : "Novo cliente"}
-              description="Cadastre os dados do tutor."
+              editingClientId={editingClientId}
+              form={clientForm}
+              uploading={uploading}
+              saving={saving}
               onClose={closeClientEditModal}
-            >
-              <form className="grid gap-4" onSubmit={handleClientSubmit}>
-                <Field label="Nome *">
-                  <input
-                    className={inputClass}
-                    maxLength={45}
-                    value={clientForm.name}
-                    onChange={(event) =>
-                      setClientForm({
-                        ...clientForm,
-                        name: event.target.value,
-                      })
-                    }
-                    required
-                  />
-                </Field>
+              onSubmit={handleClientSubmit}
+              onChange={setClientForm}
+              onImageChange={(event) =>
+                void handleImageChange(event, (foto) =>
+                  setClientForm((current) => ({ ...current, foto })),
+                )
+              }
+            />
 
-                <Field label="E-mail *">
-                  <input
-                    className={inputClass}
-                    type="email"
-                    maxLength={45}
-                    value={clientForm.email}
-                    onChange={(event) =>
-                      setClientForm({
-                        ...clientForm,
-                        email: event.target.value,
-                      })
-                    }
-                    required
-                  />
-                </Field>
-
-                <Field
-                  label={editingClientId ? "Nova senha" : "Senha inicial *"}
-                  hint={editingClientId ? "Opcional na edição." : "Mínimo de 6 caracteres."}
-                >
-                  <PasswordInput
-                    className={inputClass}
-                    minLength={6}
-                    value={clientForm.senha}
-                    onChange={(event) =>
-                      setClientForm({
-                        ...clientForm,
-                        senha: event.target.value,
-                      })
-                    }
-                    required={!editingClientId}
-                  />
-                </Field>
-
-                <Field label="Telefone">
-                  <input
-                    className={inputClass}
-                    type="tel"
-                    maxLength={20}
-                    inputMode="numeric"
-                    placeholder="(11) 99999-9999"
-                    value={formatPhone(clientForm.telefone)}
-                    onChange={(event) =>
-                      setClientForm({
-                        ...clientForm,
-                        telefone: formatPhone(event.target.value),
-                      })
-                    }
-                  />
-                </Field>
-
-                <Field label="Foto">
-                  <input
-                    className={inputClass}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    disabled={uploading || saving}
-                    onChange={(event) =>
-                      void handleImageChange(event, (foto) =>
-                        setClientForm({ ...clientForm, foto }),
-                      )
-                    }
-                  />
-                </Field>
-
-                <PhotoPreview src={clientForm.foto} alt="Prévia do cliente" />
-
-                <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-                  <button
-                    className={secondaryButtonClass}
-                    type="button"
-                    onClick={closeClientEditModal}
-                  >
-                    Cancelar
-                  </button>
-
-                  <button className={buttonClass} disabled={saving}>
-                    {editingClientId ? "Salvar alterações" : "Cadastrar cliente"}
-                  </button>
-                </div>
-              </form>
-            </Modal>
-
-            {/* =====================================================
-              MODAL - CONFIRMAÇÃO
-          ====================================================== */}
-            <Modal
-              open={Boolean(confirmModal)}
-              title={confirmModal?.title ?? "Confirmar ação"}
-              description={confirmModal?.description ?? ""}
+            <ConfirmationModal
+              state={confirmModal}
+              saving={saving}
               onClose={closeConfirmModal}
-            >
-              <div className="grid gap-5">
-                <div
-                  className={`rounded-2xl border p-4 ${
-                    confirmModal?.tone === "warning"
-                      ? "border-amber-200 bg-amber-50 text-amber-900"
-                      : "border-red-200 bg-red-50 text-red-900"
-                  }`}
-                >
-                  <p className="text-sm font-semibold">
-                    Essa ação não pode ser desfeita. Deseja realmente continuar?
-                  </p>
-                </div>
-
-                <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-                  <button
-                    className={secondaryButtonClass}
-                    type="button"
-                    onClick={closeConfirmModal}
-                    disabled={saving}
-                  >
-                    Voltar
-                  </button>
-
-                  <button
-                    className={
-                      confirmModal?.tone === "warning"
-                        ? "inline-flex items-center justify-center rounded-2xl bg-amber-500 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-amber-600 disabled:opacity-50"
-                        : dangerButtonClass
-                    }
-                    type="button"
-                    onClick={() => void confirmDestructiveAction()}
-                    disabled={saving}
-                  >
-                    {saving ? "Aguarde..." : (confirmModal?.confirmLabel ?? "Confirmar")}
-                  </button>
-                </div>
-              </div>
-            </Modal>
+              onConfirm={() => void confirmDestructiveAction()}
+            />
           </>
         )}
       </div>

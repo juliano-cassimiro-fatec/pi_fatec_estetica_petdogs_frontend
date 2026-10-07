@@ -1,4 +1,4 @@
-import type { UserRole } from "../shared/types";
+import type { UserRole } from "../../services/types";
 
 export type Permission =
   | "schedule:create"

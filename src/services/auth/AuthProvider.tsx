@@ -9,7 +9,7 @@ import type {
   VerifyResetCodeData,
   ResetPasswordData,
   ChangePasswordData,
-} from "../../features/shared/types";
+} from "../types";
 import { authService } from "./authService";
 import { AuthContext, type AuthStatus } from "./authContext";
 

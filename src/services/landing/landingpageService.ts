@@ -1,5 +1,5 @@
 import apiClient from "../api/client";
-import type { Service } from "../../features/shared/types";
+import type { Service } from "../types";
 import type { LandingPageData, LandingPageRepository, LandingService } from "./types";
 
 const defaultServices: LandingService[] = [
@@ -7,18 +7,18 @@ const defaultServices: LandingService[] = [
     id: "default-banho",
     name: "Banho",
     description:
-      "Banho completo com produtos adequados para deixar seu pet limpo, cheiroso e confortável.",
+      "Banho completo com produtos adequados para deixar seu cão limpo, cheiroso e confortável.",
   },
   {
     id: "default-tosa",
     name: "Tosa",
     description:
-      "Tosa realizada com cuidado e atenção, respeitando o estilo e o bem-estar do seu pet.",
+      "Tosa realizada com cuidado e atenção, respeitando o estilo e o bem-estar do seu cão.",
   },
   {
     id: "default-banho-tosa",
     name: "Banho + Tosa",
-    description: "Cuidado completo para deixar seu pet limpo, confortável e com o visual renovado.",
+    description: "Cuidado completo para deixar seu cão limpo, confortável e com o visual renovado.",
   },
 ];
 
@@ -79,7 +79,7 @@ function mapServiceToLanding(service: Service, index: number): LandingService {
 
   const description =
     getStringValue(raw, ["description", "descricao", "details", "detalhes"]) ??
-    "Cuidado profissional para o seu pet.";
+    "Cuidado profissional para o seu cão.";
 
   const rawPrice = getStringValue(raw, ["price", "preco", "valor"]);
 

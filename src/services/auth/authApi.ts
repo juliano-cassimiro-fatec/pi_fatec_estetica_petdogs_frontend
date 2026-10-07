@@ -10,7 +10,7 @@ import type {
   VerifyResetCodeData,
   ResetPasswordData,
   ChangePasswordData,
-} from "../../features/shared/types";
+} from "../types";
 import apiClient from "../api/client";
 
 interface MeResponse {

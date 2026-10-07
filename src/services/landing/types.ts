@@ -1,4 +1,4 @@
-import type { Service } from "../../features/shared/types";
+import type { Service } from "../types";
 
 export interface LandingService {
   id: string;

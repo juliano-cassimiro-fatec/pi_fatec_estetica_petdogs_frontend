@@ -1,4 +1,4 @@
-import type { AuthSession } from "../../features/shared/types";
+import type { AuthSession } from "../types";
 
 export interface SessionStorage {
   getSession(): AuthSession | null;

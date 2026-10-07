@@ -11,7 +11,7 @@ import type {
   VerifyResetCodeData,
   ResetPasswordData,
   ChangePasswordData,
-} from "../../features/shared/types";
+} from "../types";
 
 export function createAuthUseCases(repository: AuthRepository, storage: SessionStorage) {
   return {

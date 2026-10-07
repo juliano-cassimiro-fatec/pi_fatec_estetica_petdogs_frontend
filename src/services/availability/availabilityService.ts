@@ -1,5 +1,5 @@
 import type { AvailabilityGateway } from "./types";
-import type { DayAvailability, SlotAvailability } from "../../features/shared/types";
+import type { DayAvailability, SlotAvailability } from "../types";
 import apiClient from "../api/client";
 
 export const axiosAvailabilityGateway: AvailabilityGateway = {

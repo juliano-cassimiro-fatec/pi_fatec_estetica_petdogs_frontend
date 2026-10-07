@@ -9,7 +9,7 @@ import type {
   VerifyResetCodeData,
   ResetPasswordData,
   ChangePasswordData,
-} from "../../features/shared/types";
+} from "../types";
 
 export interface AuthRepository {
   login(credentials: LoginCredentials): Promise<AuthSession>;

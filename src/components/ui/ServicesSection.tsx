@@ -62,12 +62,12 @@ export function ServicesSection({ services, loading = false }: ServicesSectionPr
           </p>
 
           <h2 className="mt-3 text-3xl font-black text-slate-900 sm:text-4xl">
-            Tudo que seu pet precisa
+            Tudo que seu cão precisa
           </h2>
 
           <p className="mt-4 text-base leading-7 text-slate-600">
             Serviços realizados com cuidado, atenção e carinho para garantir conforto e bem-estar ao
-            seu pet.
+            seu cão.
           </p>
         </div>
 

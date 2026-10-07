@@ -1,13 +1,6 @@
 import type { DashboardRepository } from "./types";
-import type {
-  AuthUser,
-  Customer,
-  Pet,
-  Professional,
-  Schedule,
-  Service,
-} from "../../features/shared/types";
-import type { ProfileFormState } from "../../features/dashboard/profileForm";
+import type { AuthUser, Customer, Pet, Professional, Schedule, Service } from "../types";
+import type { ProfileFormState } from "./profileForm";
 import apiClient from "../api/client";
 
 export const axiosDashboardRepository: DashboardRepository = {
@@ -17,7 +10,7 @@ export const axiosDashboardRepository: DashboardRepository = {
   },
 
   async listPets() {
-    const response = await apiClient.get<Pet[]>("/pets");
+    const response = await apiClient.get<Pet[]>("/caes");
     return response.data;
   },
 
@@ -48,11 +41,11 @@ export const axiosDashboardRepository: DashboardRepository = {
 
   async savePet(payload, id) {
     if (id) {
-      await apiClient.put(`/pets/${id}`, payload);
+      await apiClient.put(`/caes/${id}`, payload);
       return;
     }
 
-    await apiClient.post("/pets", payload);
+    await apiClient.post("/caes", payload);
   },
 
   async saveService(payload, id) {

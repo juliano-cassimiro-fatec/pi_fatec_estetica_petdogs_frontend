@@ -48,3 +48,46 @@
     }
   }
 }
+
+.schedule-report-print {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .schedule-report-print,
+  .schedule-report-print * {
+    visibility: visible !important;
+  }
+
+  .schedule-report-print {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    display: block !important;
+    width: 100% !important;
+    color: #0f172a !important;
+  }
+
+  .schedule-report-print th,
+  .schedule-report-print td {
+    padding: 8px 6px;
+    border-bottom: 1px solid #cbd5e1;
+    vertical-align: top;
+  }
+
+  .schedule-report-print th {
+    font-weight: 700;
+  }
+}
