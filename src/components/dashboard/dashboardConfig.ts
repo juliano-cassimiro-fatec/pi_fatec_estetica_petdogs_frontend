@@ -1,7 +1,14 @@
 import type { AuthUser } from "../../services/types";
 import type { IconName } from "../ui/Icon";
 
-export type TabKey = "agenda" | "servicos" | "profissionais" | "clientes" | "pets" | "perfil";
+export type TabKey =
+  | "dashboard"
+  | "agenda"
+  | "servicos"
+  | "profissionais"
+  | "clientes"
+  | "pets"
+  | "perfil";
 export type Role = AuthUser["role"];
 
 export interface ScheduleFormState {

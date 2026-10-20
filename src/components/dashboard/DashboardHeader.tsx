@@ -26,6 +26,7 @@ export function DashboardHeader({
   onLogout,
 }: DashboardHeaderProps) {
   const tabs: { key: TabKey; label: string; show: boolean }[] = [
+    { key: "dashboard", label: "Visão geral", show: isAdmin },
     {
       key: "agenda",
       label: "Agenda",

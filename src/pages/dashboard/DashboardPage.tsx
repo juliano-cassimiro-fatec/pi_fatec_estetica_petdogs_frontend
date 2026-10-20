@@ -40,6 +40,7 @@ import { ProfessionalsPanel } from "../../components/dashboard/ProfessionalsPane
 import { ClientsPanel } from "../../components/dashboard/ClientsPanel";
 import { ProfilePanel } from "../../components/dashboard/ProfilePanel";
 import { DashboardHeader } from "../../components/dashboard/DashboardHeader";
+import { AdminDashboard } from "../../components/dashboard/AdminDashboard";
 
 function getAgeFromBirthDate(value: string) {
   if (!value) return -1;
@@ -132,6 +133,7 @@ export function DashboardPage() {
         const dashboardData = await dashboardService.loadDashboard();
         setUser(dashboardData.user);
         setPets(dashboardData.pets);
+        if (dashboardData.user.role === "admin") setActiveTab("dashboard");
         if (dashboardData.user.role === "cliente" && dashboardData.pets.length === 0) {
           setActiveTab("pets");
           if (showLoading) {
@@ -512,6 +514,30 @@ export function DashboardPage() {
               CONTEÚDO
           ====================================================== */}
             <div className="space-y-6">
+              {activeTab === "dashboard" && isAdmin && (
+                <AdminDashboard
+                  dogs={pets}
+                  schedules={schedules}
+                  customerCount={customers.length}
+                  saving={saving}
+                  canCreateSchedule={pets.length > 0 && services.length > 0 && professionals.length > 0}
+                  onOpenDogs={() => setActiveTab("pets")}
+                  onOpenSchedule={() => openNewScheduleModal()}
+                  onOpenCalendar={() => setActiveTab("agenda")}
+                  onEditSchedule={startEditSchedule}
+                  onConfirmSchedule={(schedule) => confirmSchedule(schedule._id)}
+                  onCancelSchedule={(schedule) =>
+                    openDeleteConfirm({
+                      title: "Cancelar agendamento?",
+                      description: `O atendimento de ${schedule.cao?.nome ?? schedule.animal?.nome ?? "Cão"} será cancelado.`,
+                      confirmLabel: "Cancelar agendamento",
+                      tone: "warning",
+                      onConfirm: () => cancelSchedule(schedule._id),
+                    })
+                  }
+                />
+              )}
+
               {activeTab === "agenda" && (
                 <SchedulePanel
                   schedules={schedules}
