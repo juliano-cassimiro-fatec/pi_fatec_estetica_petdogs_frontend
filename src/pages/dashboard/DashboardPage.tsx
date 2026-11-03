@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import type {
-  AuthUser,
   Customer,
   Pet,
   Professional,
@@ -27,12 +26,16 @@ import {
 import { can } from "../../components/dashboard/permissions";
 import { uploadImage } from "../../services/uploads/uploadService";
 import { showToast } from "../../components/ui/toastEvents";
+
+// Modais
 import { ScheduleModal } from "../../components/dashboard/ScheduleModal";
 import { PetModal } from "../../components/dashboard/PetModal";
 import { ServiceModal } from "../../components/dashboard/ServiceModal";
 import { ProfessionalModal } from "../../components/dashboard/ProfessionalModal";
 import { ClientModal } from "../../components/dashboard/ClientModal";
 import { ConfirmationModal } from "../../components/dashboard/ConfirmationModal";
+
+// Painéis
 import { SchedulePanel } from "../../components/dashboard/SchedulePanel";
 import { DogsPanel } from "../../components/dashboard/DogsPanel";
 import { ServicesPanel } from "../../components/dashboard/ServicesPanel";
@@ -44,19 +47,16 @@ import { AdminDashboard } from "../../components/dashboard/AdminDashboard";
 
 function getAgeFromBirthDate(value: string) {
   if (!value) return -1;
-
   const [year, month, day] = value.split("-").map(Number);
   const today = new Date();
   const hasHadBirthdayThisYear =
     today.getMonth() + 1 > month || (today.getMonth() + 1 === month && today.getDate() >= day);
-
   return today.getFullYear() - year - (hasHadBirthdayThisYear ? 0 : 1);
 }
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const auth = useAuth();
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const { user, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<TabKey>("agenda");
   const [pets, setPets] = useState<Pet[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -64,13 +64,16 @@ export function DashboardPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [, setMessage] = useState("");
-  const [, setError] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  
   const [petForm, setPetForm] = useState(emptyPetForm());
   const [editingPetId, setEditingPetId] = useState<string | null>(null);
   const [petEditModalOpen, setPetEditModalOpen] = useState(false);
+  
   const [scheduleForm, setScheduleForm] = useState<ScheduleFormState>({
     cao: "",
     servico: "",
@@ -80,21 +83,92 @@ export function DashboardPage() {
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [scheduleInitialDate, setScheduleInitialDate] = useState("");
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
+
   const [serviceForm, setServiceForm] = useState(emptyServiceForm());
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
   const [serviceEditModalOpen, setServiceEditModalOpen] = useState(false);
+
   const [professionalForm, setProfessionalForm] = useState(emptyProfessionalForm());
   const [editingProfessionalId, setEditingProfessionalId] = useState<string | null>(null);
   const [professionalEditModalOpen, setProfessionalEditModalOpen] = useState(false);
+
   const [clientForm, setClientForm] = useState(emptyClientForm());
   const [editingClientId, setEditingClientId] = useState<string | null>(null);
   const [clientEditModalOpen, setClientEditModalOpen] = useState(false);
+
   const [profileForm, setProfileForm] = useState(emptyProfileForm());
   const [confirmModal, setConfirmModal] = useState<ConfirmModalState | null>(null);
 
   const isAdmin = user?.role === "admin";
   const isProfessional = user?.role === "profissional";
   const isCustomer = user?.role === "cliente";
+
+  const logout = useCallback(() => {
+    signOut();
+    void navigate("/login", { replace: true });
+  }, [signOut, navigate]);
+
+  const loadData = useCallback(
+    async (showLoading = true) => {
+      if (!user) return;
+      try {
+        if (showLoading) setLoading(true);
+        setError("");
+
+        const [fetchedServices, fetchedProfessionals, fetchedSchedules] = await Promise.all([
+          dashboardService.listServices(),
+          dashboardService.listProfessionals(),
+          dashboardService.listSchedules(),
+        ]);
+
+        const [fetchedPets, fetchedCustomers, customerProfile] = await Promise.all([
+          user.role === "cliente" || user.role === "admin"
+            ? dashboardService.listPets()
+            : Promise.resolve([]),
+          user.role === "admin" ? dashboardService.listCustomers() : Promise.resolve([]),
+          user.role === "cliente"
+            ? dashboardService.getCustomerProfile()
+            : Promise.resolve<Customer | undefined>(undefined),
+        ]);
+
+        setServices(fetchedServices);
+        setProfessionals(fetchedProfessionals);
+        setSchedules(fetchedSchedules);
+        setPets(fetchedPets);
+        setCustomers(fetchedCustomers);
+
+        if (user.role === "admin") setActiveTab("dashboard");
+        if (user.role === "cliente" && fetchedPets.length === 0) {
+          setActiveTab("pets");
+          if (showLoading) {
+            setPetForm(emptyPetForm());
+            setEditingPetId(null);
+            setPetEditModalOpen(true);
+          }
+        }
+
+        const profileData =
+          user.role === "profissional"
+            ? fetchedProfessionals.find((item) => item._id === user.id)
+            : customerProfile;
+
+        setProfileForm(presentProfileForm(profileData));
+      } catch (requestError) {
+        if (isUnauthorizedError(requestError)) {
+          logout();
+          return;
+        }
+        setError("Não foi possível carregar os dados do painel.");
+      } finally {
+        if (showLoading) setLoading(false);
+      }
+    },
+    [user, logout],
+  );
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
 
   async function handleImageChange(
     event: ChangeEvent<HTMLInputElement>,
@@ -118,59 +192,6 @@ export function DashboardPage() {
       setUploading(false);
     }
   }
-
-  const logout = useCallback(() => {
-    auth.signOut();
-    setUser(null);
-    void navigate("/login", { replace: true });
-  }, [auth, navigate]);
-
-  const loadData = useCallback(
-    async (showLoading = true) => {
-      try {
-        if (showLoading) setLoading(true);
-        setError("");
-        const dashboardData = await dashboardService.loadDashboard();
-        setUser(dashboardData.user);
-        setPets(dashboardData.pets);
-        if (dashboardData.user.role === "admin") setActiveTab("dashboard");
-        if (dashboardData.user.role === "cliente" && dashboardData.pets.length === 0) {
-          setActiveTab("pets");
-          if (showLoading) {
-            setPetForm(emptyPetForm());
-            setEditingPetId(null);
-            setPetEditModalOpen(true);
-          }
-        }
-        setServices(dashboardData.services);
-        setProfessionals(dashboardData.professionals);
-        setCustomers(dashboardData.customers);
-        setSchedules(dashboardData.schedules);
-        setProfileForm(presentProfileForm(dashboardData.profile));
-      } catch (requestError) {
-        if (isUnauthorizedError(requestError)) {
-          logout();
-          return;
-        }
-
-        setError("Não foi possível carregar o painel");
-      } finally {
-        if (showLoading) setLoading(false);
-      }
-    },
-    [logout],
-  );
-
-  useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      void loadData().catch(() => {
-        setLoading(false);
-        setError("Não foi possível carregar o painel");
-      });
-    }, 0);
-
-    return () => window.clearTimeout(timeout);
-  }, [loadData]);
 
   async function submit(action: () => Promise<void>, success: string) {
     try {
@@ -260,6 +281,7 @@ export function DashboardPage() {
   function openDeleteConfirm(options: ConfirmModalState) {
     setConfirmModal(options);
   }
+
   function openExitConfirm(options: ConfirmModalState) {
     setConfirmModal(options);
   }
@@ -452,7 +474,6 @@ export function DashboardPage() {
         ...profileForm,
         telefone: onlyDigits(profileForm.telefone),
       });
-      await auth.refreshUser();
     }, "Perfil atualizado com sucesso");
   }
 
@@ -476,288 +497,304 @@ export function DashboardPage() {
 
   async function confirmDestructiveAction() {
     if (!confirmModal) return;
-
     const action = confirmModal.onConfirm;
     setConfirmModal(null);
     await action();
   }
 
+  // Tratamento visual para estado de carregamento e erro (evita tela branca)
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <p className="text-slate-500 font-medium">Carregando dados do painel...</p>
+      </main>
+    );
+  }
+
+  if (error && !user) {
+    return (
+      <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <p className="text-red-600 font-medium">{error}</p>
+          <button
+            onClick={() => void loadData()}
+            className="mt-4 rounded bg-slate-800 px-4 py-2 text-white hover:bg-slate-700"
+          >
+            Tentar Novamente
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  if (!user) return null;
+
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
-        {/* =====================================================
-          HEADER / NAVEGAÇÃO
-      ====================================================== */}
-        {!loading && user && (
-          <>
-            <DashboardHeader
-              user={user}
-              isAdmin={isAdmin}
-              isProfessional={isProfessional}
-              isCustomer={isCustomer}
-              activeTab={activeTab}
-              dogCount={pets.length}
-              onTabChange={setActiveTab}
-              onProfile={() => setActiveTab("perfil")}
-              onLogout={() =>
-                openExitConfirm({
-                  title: "Sair da aplicação?",
-                  description: "Você será desconectado da aplicação.",
-                  confirmLabel: "Sair",
+        <DashboardHeader
+          user={user}
+          isAdmin={isAdmin}
+          isProfessional={isProfessional}
+          isCustomer={isCustomer}
+          activeTab={activeTab}
+          dogCount={pets.length}
+          onTabChange={setActiveTab}
+          onProfile={() => setActiveTab("perfil")}
+          onLogout={() =>
+            openExitConfirm({
+              title: "Sair da aplicação?",
+              description: "Você será desconectado da aplicação.",
+              confirmLabel: "Sair",
+              tone: "warning",
+              onConfirm: () => Promise.resolve(logout()),
+            })
+          }
+        />
+
+        <div className="space-y-6">
+          {activeTab === "dashboard" && isAdmin && (
+            <AdminDashboard
+              dogs={pets}
+              schedules={schedules}
+              customerCount={customers.length}
+              saving={saving}
+              canCreateSchedule={pets.length > 0 && services.length > 0 && professionals.length > 0}
+              onOpenDogs={() => setActiveTab("pets")}
+              onOpenSchedule={() => openNewScheduleModal()}
+              onOpenCalendar={() => setActiveTab("agenda")}
+              onEditSchedule={startEditSchedule}
+              onConfirmSchedule={(schedule) => confirmSchedule(schedule._id)}
+              onCancelSchedule={(schedule) =>
+                openDeleteConfirm({
+                  title: "Cancelar agendamento?",
+                  description: `O atendimento de ${schedule.cao?.nome ?? schedule.animal?.nome ?? "Cão"} será cancelado.`,
+                  confirmLabel: "Cancelar agendamento",
                   tone: "warning",
-                  onConfirm: () => Promise.resolve(logout()),
+                  onConfirm: () => cancelSchedule(schedule._id),
                 })
               }
             />
+          )}
 
-            {/* =====================================================
-              CONTEÚDO
-          ====================================================== */}
-            <div className="space-y-6">
-              {activeTab === "dashboard" && isAdmin && (
-                <AdminDashboard
-                  dogs={pets}
-                  schedules={schedules}
-                  customerCount={customers.length}
-                  saving={saving}
-                  canCreateSchedule={pets.length > 0 && services.length > 0 && professionals.length > 0}
-                  onOpenDogs={() => setActiveTab("pets")}
-                  onOpenSchedule={() => openNewScheduleModal()}
-                  onOpenCalendar={() => setActiveTab("agenda")}
-                  onEditSchedule={startEditSchedule}
-                  onConfirmSchedule={(schedule) => confirmSchedule(schedule._id)}
-                  onCancelSchedule={(schedule) =>
-                    openDeleteConfirm({
-                      title: "Cancelar agendamento?",
-                      description: `O atendimento de ${schedule.cao?.nome ?? schedule.animal?.nome ?? "Cão"} será cancelado.`,
-                      confirmLabel: "Cancelar agendamento",
-                      tone: "warning",
-                      onConfirm: () => cancelSchedule(schedule._id),
-                    })
-                  }
-                />
-              )}
-
-              {activeTab === "agenda" && (
-                <SchedulePanel
-                  schedules={schedules}
-                  isAdmin={isAdmin}
-                  isProfessional={isProfessional}
-                  canEdit={can(user.role, "schedule:edit")}
-                  canConfirm={can(user.role, "schedule:confirm")}
-                  canCancel={can(user.role, "schedule:cancel")}
-                  canCreate={pets.length > 0 && services.length > 0 && professionals.length > 0}
-                  saving={saving}
-                  onCreate={openNewScheduleModal}
-                  onEdit={startEditSchedule}
-                  onConfirm={(schedule) => confirmSchedule(schedule._id)}
-                  onCancel={(schedule) =>
-                    openDeleteConfirm({
-                      title: "Cancelar agendamento?",
-                      description: `O atendimento de ${schedule.cao?.nome ?? schedule.animal?.nome ?? "Cão"} será cancelado.`,
-                      confirmLabel: "Cancelar agendamento",
-                      tone: "warning",
-                      onConfirm: () => cancelSchedule(schedule._id),
-                    })
-                  }
-                />
-              )}
-
-              {activeTab === "pets" && (isAdmin || isCustomer) && (
-                <DogsPanel
-                  dogs={pets}
-                  isAdmin={isAdmin}
-                  saving={saving}
-                  onAdd={() => {
-                    setEditingPetId(null);
-                    setPetForm(emptyPetForm());
-                    setPetEditModalOpen(true);
-                  }}
-                  onEdit={startEditPet}
-                  onDelete={(pet) =>
-                    openDeleteConfirm({
-                      title: "Excluir cão?",
-                      description: `Você deseja excluir o cão ${pet.nome}?`,
-                      confirmLabel: "Excluir cão",
-                      tone: "danger",
-                      onConfirm: () => removeResource(`/caes/${pet._id}`, "Cão removido"),
-                    })
-                  }
-                />
-              )}
-
-              {activeTab === "servicos" && (isAdmin || isCustomer) && (
-                <ServicesPanel
-                  services={services}
-                  isAdmin={isAdmin}
-                  saving={saving}
-                  onAdd={() => {
-                    setEditingServiceId(null);
-                    setServiceForm(emptyServiceForm());
-                    setServiceEditModalOpen(true);
-                  }}
-                  onEdit={startEditService}
-                  onDelete={(service) =>
-                    openDeleteConfirm({
-                      title: "Excluir serviço?",
-                      description: `Você deseja excluir o serviço ${service.name}?`,
-                      confirmLabel: "Excluir serviço",
-                      tone: "danger",
-                      onConfirm: () =>
-                        removeResource(`/servicos/${service._id}`, "Serviço removido"),
-                    })
-                  }
-                />
-              )}
-
-              {activeTab === "profissionais" && (isAdmin || isCustomer) && (
-                <ProfessionalsPanel
-                  professionals={professionals}
-                  isAdmin={isAdmin}
-                  saving={saving}
-                  onAdd={() => {
-                    setEditingProfessionalId(null);
-                    setProfessionalForm(emptyProfessionalForm());
-                    setProfessionalEditModalOpen(true);
-                  }}
-                  onEdit={startEditProfessional}
-                  onDelete={(professional) =>
-                    openDeleteConfirm({
-                      title: "Excluir profissional?",
-                      description: `Você deseja excluir o profissional ${professional.name}?`,
-                      confirmLabel: "Excluir profissional",
-                      tone: "danger",
-                      onConfirm: () =>
-                        removeResource(
-                          `/profissionais/${professional._id}`,
-                          "Profissional removido",
-                        ),
-                    })
-                  }
-                />
-              )}
-
-              {activeTab === "clientes" && isAdmin && (
-                <ClientsPanel
-                  customers={customers}
-                  saving={saving}
-                  onAdd={() => {
-                    setEditingClientId(null);
-                    setClientForm(emptyClientForm());
-                    setClientEditModalOpen(true);
-                  }}
-                  onEdit={startEditClient}
-                  onDelete={(customer) =>
-                    openDeleteConfirm({
-                      title: "Excluir cliente?",
-                      description: `Você deseja excluir o cliente ${customer.name}?`,
-                      confirmLabel: "Excluir cliente",
-                      tone: "danger",
-                      onConfirm: () =>
-                        removeResource(`/clientes/${customer._id}`, "Cliente removido"),
-                    })
-                  }
-                />
-              )}
-
-              {activeTab === "perfil" && (isCustomer || isProfessional) && (
-                <ProfilePanel
-                  form={profileForm}
-                  uploading={uploading}
-                  saving={saving}
-                  onChange={setProfileForm}
-                  onSubmit={handleProfileSubmit}
-                  onImageChange={(event) =>
-                    void handleImageChange(event, (foto) =>
-                      setProfileForm((current) => ({ ...current, foto })),
-                    )
-                  }
-                />
-              )}
-            </div>
-
-            <ScheduleModal
-              open={scheduleModalOpen}
-              editingScheduleId={editingScheduleId}
-              form={scheduleForm}
-              dogs={pets}
-              professionals={professionals}
-              services={services}
-              initialDate={scheduleInitialDate}
-              saving={saving}
-              onClose={closeScheduleModal}
-              onSubmit={handleScheduleSubmit}
-              onChange={setScheduleForm}
-            />
-
-            <PetModal
-              open={petEditModalOpen}
+          {activeTab === "agenda" && (
+            <SchedulePanel
+              schedules={schedules}
               isAdmin={isAdmin}
-              editingPetId={editingPetId}
-              form={petForm}
+              isProfessional={isProfessional}
+              canEdit={can(user.role, "schedule:edit")}
+              canConfirm={can(user.role, "schedule:confirm")}
+              canCancel={can(user.role, "schedule:cancel")}
+              canCreate={pets.length > 0 && services.length > 0 && professionals.length > 0}
+              saving={saving}
+              onCreate={openNewScheduleModal}
+              onEdit={startEditSchedule}
+              onConfirm={(schedule) => confirmSchedule(schedule._id)}
+              onCancel={(schedule) =>
+                openDeleteConfirm({
+                  title: "Cancelar agendamento?",
+                  description: `O atendimento de ${schedule.cao?.nome ?? schedule.animal?.nome ?? "Cão"} será cancelado.`,
+                  confirmLabel: "Cancelar agendamento",
+                  tone: "warning",
+                  onConfirm: () => cancelSchedule(schedule._id),
+                })
+              }
+            />
+          )}
+
+          {activeTab === "pets" && (isAdmin || isCustomer) && (
+            <DogsPanel
+              dogs={pets}
+              isAdmin={isAdmin}
+              saving={saving}
+              onAdd={() => {
+                setEditingPetId(null);
+                setPetForm(emptyPetForm());
+                setPetEditModalOpen(true);
+              }}
+              onEdit={startEditPet}
+              onDelete={(pet) =>
+                openDeleteConfirm({
+                  title: "Excluir cão?",
+                  description: `Você deseja excluir o cão ${pet.nome}?`,
+                  confirmLabel: "Excluir cão",
+                  tone: "danger",
+                  onConfirm: () => removeResource(`/caes/${pet._id}`, "Cão removido"),
+                })
+              }
+            />
+          )}
+
+          {activeTab === "servicos" && (isAdmin || isCustomer) && (
+            <ServicesPanel
+              services={services}
+              isAdmin={isAdmin}
+              saving={saving}
+              onAdd={() => {
+                setEditingServiceId(null);
+                setServiceForm(emptyServiceForm());
+                setServiceEditModalOpen(true);
+              }}
+              onEdit={startEditService}
+              onDelete={(service) =>
+                openDeleteConfirm({
+                  title: "Excluir serviço?",
+                  description: `Você deseja excluir o serviço ${service.name}?`,
+                  confirmLabel: "Excluir serviço",
+                  tone: "danger",
+                  onConfirm: () =>
+                    removeResource(`/servicos/${service._id}`, "Serviço removido"),
+                })
+              }
+            />
+          )}
+
+          {activeTab === "profissionais" && (isAdmin || isCustomer) && (
+            <ProfessionalsPanel
+              professionals={professionals}
+              isAdmin={isAdmin}
+              saving={saving}
+              onAdd={() => {
+                setEditingProfessionalId(null);
+                setProfessionalForm(emptyProfessionalForm());
+                setProfessionalEditModalOpen(true);
+              }}
+              onEdit={startEditProfessional}
+              onDelete={(professional) =>
+                openDeleteConfirm({
+                  title: "Excluir profissional?",
+                  description: `Você deseja excluir o profissional ${professional.name}?`,
+                  confirmLabel: "Excluir profissional",
+                  tone: "danger",
+                  onConfirm: () =>
+                    removeResource(
+                      `/profissionais/${professional._id}`,
+                      "Profissional removido",
+                    ),
+                })
+              }
+            />
+          )}
+
+          {activeTab === "clientes" && isAdmin && (
+            <ClientsPanel
               customers={customers}
+              saving={saving}
+              onAdd={() => {
+                setEditingClientId(null);
+                setClientForm(emptyClientForm());
+                setClientEditModalOpen(true);
+              }}
+              onEdit={startEditClient}
+              onDelete={(customer) =>
+                openDeleteConfirm({
+                  title: "Excluir cliente?",
+                  description: `Você deseja excluir o cliente ${customer.name}?`,
+                  confirmLabel: "Excluir cliente",
+                  tone: "danger",
+                  onConfirm: () =>
+                    removeResource(`/clientes/${customer._id}`, "Cliente removido"),
+                })
+              }
+            />
+          )}
+
+          {activeTab === "perfil" && (isCustomer || isProfessional) && (
+            <ProfilePanel
+              form={profileForm}
               uploading={uploading}
               saving={saving}
-              onClose={closePetEditModal}
-              onSubmit={handlePetSubmit}
-              onChange={setPetForm}
+              onChange={setProfileForm}
+              onSubmit={handleProfileSubmit}
               onImageChange={(event) =>
                 void handleImageChange(event, (foto) =>
-                  setPetForm((current) => ({ ...current, foto })),
+                  setProfileForm((current) => ({ ...current, foto })),
                 )
               }
             />
+          )}
+        </div>
 
-            <ServiceModal
-              open={serviceEditModalOpen}
-              editingServiceId={editingServiceId}
-              form={serviceForm}
-              saving={saving}
-              onClose={closeServiceEditModal}
-              onSubmit={handleServiceSubmit}
-              onChange={setServiceForm}
-            />
+        <ScheduleModal
+          open={scheduleModalOpen}
+          editingScheduleId={editingScheduleId}
+          form={scheduleForm}
+          dogs={pets}
+          professionals={professionals}
+          services={services}
+          initialDate={scheduleInitialDate}
+          saving={saving}
+          onClose={closeScheduleModal}
+          onSubmit={handleScheduleSubmit}
+          onChange={setScheduleForm}
+        />
 
-            <ProfessionalModal
-              open={professionalEditModalOpen}
-              editingProfessionalId={editingProfessionalId}
-              form={professionalForm}
-              uploading={uploading}
-              saving={saving}
-              onClose={closeProfessionalEditModal}
-              onSubmit={handleProfessionalSubmit}
-              onChange={setProfessionalForm}
-              onImageChange={(event) =>
-                void handleImageChange(event, (foto) =>
-                  setProfessionalForm((current) => ({ ...current, foto })),
-                )
-              }
-            />
+        <PetModal
+          open={petEditModalOpen}
+          isAdmin={isAdmin}
+          editingPetId={editingPetId}
+          form={petForm}
+          customers={customers}
+          uploading={uploading}
+          saving={saving}
+          onClose={closePetEditModal}
+          onSubmit={handlePetSubmit}
+          onChange={setPetForm}
+          onImageChange={(event) =>
+            void handleImageChange(event, (foto) =>
+              setPetForm((current) => ({ ...current, foto })),
+            )
+          }
+        />
 
-            <ClientModal
-              open={clientEditModalOpen}
-              editingClientId={editingClientId}
-              form={clientForm}
-              uploading={uploading}
-              saving={saving}
-              onClose={closeClientEditModal}
-              onSubmit={handleClientSubmit}
-              onChange={setClientForm}
-              onImageChange={(event) =>
-                void handleImageChange(event, (foto) =>
-                  setClientForm((current) => ({ ...current, foto })),
-                )
-              }
-            />
+        <ServiceModal
+          open={serviceEditModalOpen}
+          editingServiceId={editingServiceId}
+          form={serviceForm}
+          saving={saving}
+          onClose={closeServiceEditModal}
+          onSubmit={handleServiceSubmit}
+          onChange={setServiceForm}
+        />
 
-            <ConfirmationModal
-              state={confirmModal}
-              saving={saving}
-              onClose={closeConfirmModal}
-              onConfirm={() => void confirmDestructiveAction()}
-            />
-          </>
-        )}
+        <ProfessionalModal
+          open={professionalEditModalOpen}
+          editingProfessionalId={editingProfessionalId}
+          form={professionalForm}
+          uploading={uploading}
+          saving={saving}
+          onClose={closeProfessionalEditModal}
+          onSubmit={handleProfessionalSubmit}
+          onChange={setProfessionalForm}
+          onImageChange={(event) =>
+            void handleImageChange(event, (foto) =>
+              setProfessionalForm((current) => ({ ...current, foto })),
+            )
+          }
+        />
+
+        <ClientModal
+          open={clientEditModalOpen}
+          editingClientId={editingClientId}
+          form={clientForm}
+          uploading={uploading}
+          saving={saving}
+          onClose={closeClientEditModal}
+          onSubmit={handleClientSubmit}
+          onChange={setClientForm}
+          onImageChange={(event) =>
+            void handleImageChange(event, (foto) =>
+              setClientForm((current) => ({ ...current, foto })),
+            )
+          }
+        />
+
+        <ConfirmationModal
+          state={confirmModal}
+          saving={saving}
+          onClose={closeConfirmModal}
+          onConfirm={() => void confirmDestructiveAction()}
+        />
       </div>
     </main>
   );

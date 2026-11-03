@@ -65,7 +65,7 @@ export function ClientModal({
 
         <Field
           label={editingClientId ? "Nova senha" : "Senha inicial *"}
-          hint={editingClientId ? "Opcional na edição." : "Mínimo de 6 caracteres."}
+          hint={editingClientId ? "Opcional na edição." : "Mínimo de 8 caracteres."}
         >
           <PasswordInput
             className={inputClass}
