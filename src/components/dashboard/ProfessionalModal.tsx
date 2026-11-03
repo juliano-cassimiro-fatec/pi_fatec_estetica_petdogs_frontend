@@ -67,7 +67,7 @@ export function ProfessionalModal({
         <Field
           label={editingProfessionalId ? "Nova senha" : "Senha inicial *"}
           hint={
-            editingProfessionalId ? "Deixe vazio para manter a senha." : "Mínimo de 6 caracteres."
+            editingProfessionalId ? "Deixe vazio para manter a senha." : "Mínimo de 8 caracteres."
           }
         >
           <PasswordInput
