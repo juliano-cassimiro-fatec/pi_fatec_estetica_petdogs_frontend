@@ -105,44 +105,24 @@ export const axiosDashboardRepository: DashboardRepository = {
   },
 };
 
-function findProfessionalProfile(
-  user: AuthUser,
-  professionals: Professional[],
-): Professional | undefined {
-  return professionals.find((item) => item._id === user.id);
-}
-
 export function createDashboardService(repository: DashboardRepository) {
   return {
-    async loadDashboard() {
-      const user = await repository.getMe();
-      const [services, professionals, schedules] = await Promise.all([
-        repository.listServices(),
-        repository.listProfessionals(),
-        repository.listSchedules(),
-      ]);
-      const [pets, customers, customerProfile] = await Promise.all([
-        user.role === "cliente" || user.role === "admin"
-          ? repository.listPets()
-          : Promise.resolve([]),
-        user.role === "admin" ? repository.listCustomers() : Promise.resolve([]),
-        user.role === "cliente"
-          ? repository.getCustomerProfile()
-          : Promise.resolve<Customer | undefined>(undefined),
-      ]);
-      return {
-        user,
-        pets,
-        services,
-        professionals,
-        customers,
-        schedules,
-        profile:
-          user.role === "profissional"
-            ? findProfessionalProfile(user, professionals)
-            : customerProfile,
-      };
+    // Métodos de listagem expostos diretamente
+    getMe: repository.getMe.bind(repository),
+    listPets: repository.listPets.bind(repository),
+    listServices: repository.listServices.bind(repository),
+    listProfessionals: repository.listProfessionals.bind(repository),
+    listCustomers: repository.listCustomers.bind(repository),
+    listSchedules: repository.listSchedules.bind(repository),
+    getCustomerProfile: repository.getCustomerProfile.bind(repository),
+
+    // Busca o perfil de um profissional específico
+    async getProfessionalProfile(userId: string) {
+      const professionals = await repository.listProfessionals();
+      return professionals.find((item) => item._id === userId);
     },
+
+    // Métodos de mutação
     savePet: repository.savePet.bind(repository),
     saveService: repository.saveService.bind(repository),
     saveProfessional: repository.saveProfessional.bind(repository),
