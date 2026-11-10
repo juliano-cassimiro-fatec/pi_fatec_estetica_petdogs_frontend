@@ -3,6 +3,7 @@ import Icon from "../ui/Icon";
 import { dangerButtonClass, secondaryButtonClass, buttonClass } from "./dashboardConfig";
 import { resolveImageUrl } from "../../services/uploads/imageUrl";
 import type { Pet } from "../../services/types";
+import { getAgeFromBirthDate } from "../../utils/dateUtils";
 
 interface DogsPanelProps {
   dogs: Pet[];
@@ -48,7 +49,7 @@ export function DogsPanel({ dogs, isAdmin, saving, onAdd, onEdit, onDelete }: Do
               <div className="p-4">
                 <h3 className="font-black text-slate-950">{dog.nome}</h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  {dog.raca} · {dog.idade} anos
+                  {dog.raca} · {getAgeFromBirthDate(dog.data_nascimento)} anos
                 </p>
                 <span className="mt-2 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
                   Porte: {dog.porte}

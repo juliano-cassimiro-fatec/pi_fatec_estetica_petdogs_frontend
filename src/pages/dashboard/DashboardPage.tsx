@@ -45,14 +45,6 @@ import { ProfilePanel } from "../../components/dashboard/ProfilePanel";
 import { DashboardHeader } from "../../components/dashboard/DashboardHeader";
 import { AdminDashboard } from "../../components/dashboard/AdminDashboard";
 
-function getAgeFromBirthDate(value: string) {
-  if (!value) return -1;
-  const [year, month, day] = value.split("-").map(Number);
-  const today = new Date();
-  const hasHadBirthdayThisYear =
-    today.getMonth() + 1 > month || (today.getMonth() + 1 === month && today.getDate() >= day);
-  return today.getFullYear() - year - (hasHadBirthdayThisYear ? 0 : 1);
-}
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -318,12 +310,15 @@ export function DashboardPage() {
     setActiveTab("clientes");
   }
 
-  function startEditPet(pet: Pet) {
+    function startEditPet(pet: Pet) {
     setEditingPetId(pet._id);
+    
+    const dataFormatada = pet.data_nascimento ? pet.data_nascimento.split("T")[0] : "";
+
     setPetForm({
       nome: pet.nome,
       raca: pet.raca,
-      dataNascimento: "",
+      dataNascimento: dataFormatada,
       porte: pet.porte,
       foto: pet.foto ?? "",
       cliente: pet.cliente?._id ?? "",
@@ -332,12 +327,13 @@ export function DashboardPage() {
     setActiveTab("pets");
   }
 
-  async function handlePetSubmit(event: FormEvent<HTMLFormElement>) {
+
+    async function handlePetSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (uploading) return;
-    const idade = getAgeFromBirthDate(petForm.dataNascimento);
-    if (idade < 0 || idade > 18) {
-      const message = "Informe uma data de nascimento válida para um cão de até 18 anos.";
+    
+    if (!petForm.dataNascimento) {
+      const message = "Informe a data de nascimento do cão.";
       setError(message);
       showToast(message);
       return;
@@ -345,10 +341,12 @@ export function DashboardPage() {
 
     await submit(
       async () => {
-        const { dataNascimento, ...petData } = petForm;
         const payload: PetPayload = {
-          ...petData,
-          idade,
+          nome: petForm.nome,
+          raca: petForm.raca,
+          data_nascimento: petForm.dataNascimento,
+          porte: petForm.porte,
+          foto: petForm.foto,
           cliente: isAdmin ? petForm.cliente : undefined,
         };
         const existingPet = pets.find((pet) => pet._id === editingPetId);
@@ -357,7 +355,7 @@ export function DashboardPage() {
         if (existingPet) {
           if (existingPet.nome !== payload.nome) changedPayload.nome = payload.nome;
           if (existingPet.raca !== payload.raca) changedPayload.raca = payload.raca;
-          if (existingPet.idade !== payload.idade) changedPayload.idade = payload.idade;
+          if (existingPet.data_nascimento !== payload.data_nascimento) changedPayload.data_nascimento = payload.data_nascimento;
           if (existingPet.porte !== payload.porte) changedPayload.porte = payload.porte;
           if ((existingPet.foto ?? "") !== (payload.foto ?? "")) changedPayload.foto = payload.foto;
           if (isAdmin && existingPet.cliente?._id !== payload.cliente) {
@@ -376,6 +374,7 @@ export function DashboardPage() {
       editingPetId ? "Cão atualizado com sucesso" : "Cão cadastrado com sucesso",
     );
   }
+
 
   async function handleScheduleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
