@@ -107,7 +107,7 @@ export const axiosDashboardRepository: DashboardRepository = {
 
 export function createDashboardService(repository: DashboardRepository) {
   return {
-    // Métodos de listagem expostos diretamente
+   
     getMe: repository.getMe.bind(repository),
     listPets: repository.listPets.bind(repository),
     listServices: repository.listServices.bind(repository),
@@ -116,13 +116,13 @@ export function createDashboardService(repository: DashboardRepository) {
     listSchedules: repository.listSchedules.bind(repository),
     getCustomerProfile: repository.getCustomerProfile.bind(repository),
 
-    // Busca o perfil de um profissional específico
+    
     async getProfessionalProfile(userId: string) {
       const professionals = await repository.listProfessionals();
       return professionals.find((item) => item._id === userId);
     },
 
-    // Métodos de mutação
+    
     savePet: repository.savePet.bind(repository),
     saveService: repository.saveService.bind(repository),
     saveProfessional: repository.saveProfessional.bind(repository),

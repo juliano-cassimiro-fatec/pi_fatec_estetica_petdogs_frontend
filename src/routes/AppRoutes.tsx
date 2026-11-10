@@ -1,52 +1,46 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "../services/auth/useAuth";
-
-import { DashboardLayout } from "../components/dashboard/DashboardLayout";
-import { AdminDashboard } from "../components/dashboard/AdminDashboard";
-import { SchedulePanel } from "../components/dashboard/SchedulePanel";
-import { DogsPanel } from "../components/dashboard/DogsPanel";
-import { ServicesPanel } from "../components/dashboard/ServicesPanel";
-import { ProfessionalsPanel } from "../components/dashboard/ProfessionalsPanel";
-import { ClientsPanel } from "../components/dashboard/ClientsPanel";
-import { ProfilePanel } from "../components/dashboard/ProfilePanel";
-import LoginPage from "../pages/LoginPage"; 
+import { DashboardPage } from "../pages/dashboard/DashboardPage"; 
+import { LoginPage } from "../pages/auth/LoginPage"; 
+import { LegalPage } from "../pages/legal/LegalPage";
 
 export function AppRoutes() {
-  const { isAuthenticated, user } = useAuth();
+  const { user, status } = useAuth();
+  const isAuthenticated = status === "authenticated";
+
+  if (status === "checking") {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <p className="text-slate-500 font-medium">Verificando autenticação...</p>
+      </div>
+    );
+  }
 
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
-
       
-      <Route 
-        path="/dashboard" 
+      <Route
+        path="/login"
         element={
-          isAuthenticated ? <DashboardLayout /> : <Navigate to="/login" replace />
+          isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />
         }
-      >
-        
-        <Route 
-          index 
-          element={
-            user?.role === "admin" 
-              ? <Navigate to="resumo" replace /> 
-              : <Navigate to="agenda" replace />
-          } 
-        />
+      />
 
-        
-        <Route path="resumo" element={<AdminDashboard />} />
-        <Route path="agenda" element={<SchedulePanel />} />
-        <Route path="pets" element={<DogsPanel />} />
-        <Route path="servicos" element={<ServicesPanel />} />
-        <Route path="profissionais" element={<ProfessionalsPanel />} />
-        <Route path="clientes" element={<ClientsPanel />} />
-        <Route path="perfil" element={<ProfilePanel />} />
-      </Route>
+      <Route
+        path="/dashboard"
+        element={
+          isAuthenticated ? <DashboardPage /> : <Navigate to="/login" replace />
+        }
+      />
 
+      {/* Rotas legais adicionadas e configuradas com a prop "document" */}
+      <Route path="/termos-de-uso" element={<LegalPage document="terms" />} />
+      <Route path="/politica-de-privacidade" element={<LegalPage document="privacy" />} />
       
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route
+        path="*"
+        element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />}
+      />
     </Routes>
   );
 }

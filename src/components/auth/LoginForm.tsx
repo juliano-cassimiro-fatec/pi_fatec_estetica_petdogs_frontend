@@ -148,25 +148,21 @@ export function LoginForm({
                   required
                 />
                 <p className="text-sm leading-6 text-slate-600">
-                  <label htmlFor="accept-legal">Li e aceito os </label>
-                  <Link
-                    className="font-semibold text-blue-700 underline-offset-2 hover:underline"
-                    to="/termos-de-uso"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Termos de Uso
-                  </Link>{" "}
-                  e a{" "}
-                  <Link
-                    className="font-semibold text-blue-700 underline-offset-2 hover:underline"
-                    to="/politica-de-privacidade"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Política de Privacidade
-                  </Link>
-                  .
+                 <label htmlFor="accept-legal">Li e aceito os </label>
+               <Link
+               className="font-semibold text-blue-700 underline-offset-2 hover:underline"
+                to="/termos-de-uso"
+                 >
+               Termos de Uso
+              </Link>{" "}
+             e a{" "}
+             <Link
+               className="font-semibold text-blue-700 underline-offset-2 hover:underline"
+           to="/politica-de-privacidade"
+             >
+            Política de Privacidade
+           </Link>
+            .
                 </p>
               </div>
             )}
