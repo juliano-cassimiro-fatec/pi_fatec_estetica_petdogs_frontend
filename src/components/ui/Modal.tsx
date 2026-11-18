@@ -96,14 +96,14 @@ export function Modal({
             )}
           </div>
 
-          <button
+         {/* <button
             type="button"
             onClick={onClose}
             aria-label="Fechar modal"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white text-xl leading-none text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
           >
             ×
-          </button>
+          </button> */}
         </header>
 
         <div className={`flex-1 overflow-y-auto ${size === "compact" ? "px-5 py-4" : "px-6 py-6"}`}>
