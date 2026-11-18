@@ -16,7 +16,15 @@ export default defineConfig([
    * =========================================================
    */
 
-  globalIgnores(["node_modules/**", "dist/**", "build/**", "coverage/**", ".vite/**"]),
+  globalIgnores([
+    "node_modules/**",
+    "dist/**",
+    "build/**",
+    "coverage/**",
+    ".vite/**",
+    "playwright-report/**",
+    "test-results/**",
+  ]),
 
   /*
    * =========================================================

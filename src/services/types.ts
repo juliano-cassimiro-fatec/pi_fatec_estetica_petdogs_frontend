@@ -70,7 +70,7 @@ export interface Pet {
   _id: string;
   nome: string;
   raca: string;
-  idade: number;
+  data_nascimento: string;
   porte: string;
   foto?: string;
   cliente?: Customer;

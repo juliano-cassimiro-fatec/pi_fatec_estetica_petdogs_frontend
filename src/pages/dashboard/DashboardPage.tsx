@@ -1,12 +1,6 @@
 import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import type {
-  Customer,
-  Pet,
-  Professional,
-  Schedule,
-  Service,
-} from "../../services/types";
+import type { Customer, Pet, Professional, Schedule, Service } from "../../services/types";
 import { dashboardService } from "../../services/dashboard/dashboardService";
 import type { PetPayload } from "../../services/dashboard/types";
 import { useAuth } from "../../services/auth/useAuth";
@@ -45,7 +39,6 @@ import { ProfilePanel } from "../../components/dashboard/ProfilePanel";
 import { DashboardHeader } from "../../components/dashboard/DashboardHeader";
 import { AdminDashboard } from "../../components/dashboard/AdminDashboard";
 
-
 export function DashboardPage() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
@@ -61,11 +54,10 @@ export function DashboardPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  
-  const [petForm, setPetForm] = useState(emptyPetForm());
+  const [petForm, setPetForm] = useState(() => emptyPetForm());
   const [editingPetId, setEditingPetId] = useState<string | null>(null);
   const [petEditModalOpen, setPetEditModalOpen] = useState(false);
-  
+
   const [scheduleForm, setScheduleForm] = useState<ScheduleFormState>({
     cao: "",
     servico: "",
@@ -159,6 +151,8 @@ export function DashboardPage() {
   );
 
   useEffect(() => {
+    // Load the dashboard when the authenticated user changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadData();
   }, [loadData]);
 
@@ -310,9 +304,9 @@ export function DashboardPage() {
     setActiveTab("clientes");
   }
 
-    function startEditPet(pet: Pet) {
+  function startEditPet(pet: Pet) {
     setEditingPetId(pet._id);
-    
+
     const dataFormatada = pet.data_nascimento ? pet.data_nascimento.split("T")[0] : "";
 
     setPetForm({
@@ -327,11 +321,10 @@ export function DashboardPage() {
     setActiveTab("pets");
   }
 
-
-    async function handlePetSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handlePetSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (uploading) return;
-    
+
     if (!petForm.dataNascimento) {
       const message = "Informe a data de nascimento do cão.";
       setError(message);
@@ -355,7 +348,8 @@ export function DashboardPage() {
         if (existingPet) {
           if (existingPet.nome !== payload.nome) changedPayload.nome = payload.nome;
           if (existingPet.raca !== payload.raca) changedPayload.raca = payload.raca;
-          if (existingPet.data_nascimento !== payload.data_nascimento) changedPayload.data_nascimento = payload.data_nascimento;
+          if (existingPet.data_nascimento !== payload.data_nascimento)
+            changedPayload.data_nascimento = payload.data_nascimento;
           if (existingPet.porte !== payload.porte) changedPayload.porte = payload.porte;
           if ((existingPet.foto ?? "") !== (payload.foto ?? "")) changedPayload.foto = payload.foto;
           if (isAdmin && existingPet.cliente?._id !== payload.cliente) {
@@ -374,7 +368,6 @@ export function DashboardPage() {
       editingPetId ? "Cão atualizado com sucesso" : "Cão cadastrado com sucesso",
     );
   }
-
 
   async function handleScheduleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -641,8 +634,7 @@ export function DashboardPage() {
                   description: `Você deseja excluir o serviço ${service.name}?`,
                   confirmLabel: "Excluir serviço",
                   tone: "danger",
-                  onConfirm: () =>
-                    removeResource(`/servicos/${service._id}`, "Serviço removido"),
+                  onConfirm: () => removeResource(`/servicos/${service._id}`, "Serviço removido"),
                 })
               }
             />
@@ -666,10 +658,7 @@ export function DashboardPage() {
                   confirmLabel: "Excluir profissional",
                   tone: "danger",
                   onConfirm: () =>
-                    removeResource(
-                      `/profissionais/${professional._id}`,
-                      "Profissional removido",
-                    ),
+                    removeResource(`/profissionais/${professional._id}`, "Profissional removido"),
                 })
               }
             />
@@ -691,8 +680,7 @@ export function DashboardPage() {
                   description: `Você deseja excluir o cliente ${customer.name}?`,
                   confirmLabel: "Excluir cliente",
                   tone: "danger",
-                  onConfirm: () =>
-                    removeResource(`/clientes/${customer._id}`, "Cliente removido"),
+                  onConfirm: () => removeResource(`/clientes/${customer._id}`, "Cliente removido"),
                 })
               }
             />
@@ -740,9 +728,7 @@ export function DashboardPage() {
           onSubmit={handlePetSubmit}
           onChange={setPetForm}
           onImageChange={(event) =>
-            void handleImageChange(event, (foto) =>
-              setPetForm((current) => ({ ...current, foto })),
-            )
+            void handleImageChange(event, (foto) => setPetForm((current) => ({ ...current, foto })))
           }
         />
 
