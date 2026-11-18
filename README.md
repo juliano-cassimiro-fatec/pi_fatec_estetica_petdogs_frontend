@@ -33,6 +33,10 @@ Essa suíte inicia uma API em porta temporária, um frontend na porta 4174 e um 
 
 O GitHub Actions verifica ESLint, Prettier, compilação, cobertura unitária e os dois conjuntos Playwright em pushes e pull requests. Para o teste real, obtém o backend público na branch `main`; a variável de repositório `BACKEND_REF` permite selecionar outra revisão publicada. Os relatórios de cobertura e os rastros de falha ficam disponíveis como artefatos. A meta de 100% ainda não é exigida, pois a cobertura atual está abaixo dela.
 
+Os relatórios HTML do Playwright e da cobertura são guardados como artefatos em cada execução. Após sucesso na branch padrão, são publicados no GitHub Pages; a publicação pública inclui os relatórios HTML, mas não os anexos ou rastros do Playwright. As páginas podem conter nomes de testes, erros e trechos de código, portanto os testes devem usar apenas dados fictícios. É necessário configurar o GitHub Pages para usar GitHub Actions como origem.
+
+Os valores locais de ambiente podem ser armazenados como Actions Secrets, mas não são usados automaticamente pelos testes isolados nem pela publicação da imagem. `VITE_API_URL` é uma configuração pública embutida no frontend, não uma credencial; valores de produção devem ser configurados explicitamente quando houver implantação da aplicação.
+
 Após o sucesso em um push para a branch padrão, publica `ghcr.io/<dono>/<repositorio>:latest` e uma tag com o SHA do commit. O pacote pode ser privado por padrão: ajuste sua visibilidade ou autentique-se no GHCR para baixá-lo. A publicação não implanta a imagem em um servidor.
 
 Para gerar a imagem localmente, use `docker build -f Dockerfile.production -t petdogs-frontend .`. O Nginx serve a aplicação na porta 80 e encaminha `/api/` e `/uploads/` para `BACKEND_URL`, cujo padrão é `http://backend:3001`. Conecte os contêineres à mesma rede e configure `BACKEND_URL` com a origem HTTP da API, sem barra final, quando necessário. O backend precisa estar acessível quando o Nginx iniciar. O `Dockerfile` original continua destinado ao desenvolvimento.
