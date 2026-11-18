@@ -50,8 +50,7 @@ export function AdminDashboard({
   const upcomingSchedules = activeSchedules
     .filter((schedule) => new Date(schedule.data_hora).getTime() >= now.getTime())
     .sort(
-      (first, second) =>
-        new Date(first.data_hora).getTime() - new Date(second.data_hora).getTime(),
+      (first, second) => new Date(first.data_hora).getTime() - new Date(second.data_hora).getTime(),
     )
     .slice(0, 5);
 
@@ -75,9 +74,7 @@ export function AdminDashboard({
   return (
     <section className="space-y-6">
       <header className="overflow-hidden rounded-[2rem] bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500 p-6 text-white shadow-lg shadow-blue-200/60 sm:p-8">
-        <p className="text-sm font-bold uppercase tracking-[0.18em] text-blue-100">
-          Administração
-        </p>
+        <p className="text-sm font-bold uppercase tracking-[0.18em] text-blue-100">Administração</p>
         <div className="mt-2 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
           <div>
             <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Visão geral</h2>

@@ -21,7 +21,7 @@ export interface AuthContextValue {
   register(data: RegisterCustomerData): Promise<RegisterCustomerResponse>;
   verifyEmail(data: VerifyEmailData): Promise<AuthUser>;
   resendEmailVerification(data: ResendEmailVerificationData): Promise<void>;
-  signOut(): void;
+  signOut(this: void): void;
   refreshUser(): Promise<void>;
   forgotPassword(data: ForgotPasswordData): Promise<void>;
   verifyResetCode(data: VerifyResetCodeData): Promise<string>;
